@@ -6,6 +6,7 @@ import contratosRoutes from './routes/contratos.js';
 import partesRoutes from './routes/partes.js';
 import aceptacionesRoutes from './routes/aceptaciones.js';
 import firmasRoutes from './routes/firmas.js';
+import pdfRoutes from './routes/pdf.js';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.get('/', (_req: Request, res: Response) => {
             partes: '/api/partes',
             aceptaciones: '/api/aceptaciones',
             firmas: '/api/firmas',
+            pdf: '/api/pdf',
         },
         documentation: 'Ver /docs/API.md',
     });
@@ -51,6 +53,7 @@ app.use('/api/contratos', contratosRoutes);
 app.use('/api/partes', partesRoutes);
 app.use('/api/aceptaciones', aceptacionesRoutes);
 app.use('/api/firmas', firmasRoutes);
+app.use('/api/pdf', pdfRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

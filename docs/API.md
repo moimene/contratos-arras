@@ -343,6 +343,43 @@ Registra la firma electrónica de una parte.
 
 ---
 
+## PDFs
+
+### POST /api/pdf/:contratoId/generar-borrador
+Genera el PDF borrador del contrato.
+
+**Requisitos**:
+- Estado del contrato: `TERMINOS_ESENCIALES_ACEPTADOS`
+
+**Response 200**
+Devuelve el PDF como archivo descargable.
+
+**Behavior**:
+- Cambia estado a `BORRADOR_GENERADO`
+- Registra evento `BORRADOR_GENERADO`
+- PDF incluye: inmueble, partes, condiciones económicas, naturaleza de arras, disclaimers legales
+
+---
+
+### GET /api/pdf/:contratoId/borrador
+Descarga el PDF borrador (regenerado cada vez).
+
+**Response 200**
+PDF del borrador con datos actuales del contrato.
+
+---
+
+### GET /api/pdf/:contratoId/firmado
+Descarga el PDF del contrato firmado.
+
+**Requisitos**:
+- Estado del contrato: `FIRMADO`
+
+**Response 200**
+PDF firmado con certificación de firmas electrónicas, sellos de tiempo e información de firmantes.
+
+---
+
 ## Estados del Contrato
 
 | Estado | Descripción |
