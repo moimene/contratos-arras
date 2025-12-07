@@ -7,6 +7,7 @@ import partesRoutes from './routes/partes.js';
 import aceptacionesRoutes from './routes/aceptaciones.js';
 import firmasRoutes from './routes/firmas.js';
 import pdfRoutes from './routes/pdf.js';
+import pagosRoutes from './routes/pagos.js';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/partes', partesRoutes);
 app.use('/api/aceptaciones', aceptacionesRoutes);
 app.use('/api/firmas', firmasRoutes);
 app.use('/api/pdf', pdfRoutes);
+app.use('/api/pagos', pagosRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
