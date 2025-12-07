@@ -9,6 +9,7 @@ import firmasRoutes from './routes/firmas.js';
 import pdfRoutes from './routes/pdf.js';
 import pagosRoutes from './routes/pagos.js';
 import actasRoutes from './routes/actas.js';
+import notariaRoutes from './routes/notaria.js';
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use('/api/firmas', firmasRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/actas', actasRoutes);
+app.use('/api/notaria', notariaRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
