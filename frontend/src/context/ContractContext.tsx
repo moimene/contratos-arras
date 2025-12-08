@@ -54,9 +54,12 @@ interface Contrato {
     tipo_arras: 'CONFIRMATORIAS' | 'PENITENCIALES' | 'PENALES';
     precio_total: number;
     importe_arras: number;
+    porcentaje_arras_calculado?: number;
+    moneda?: string;
     fecha_limite_firma_escritura: string;
-    forma_pago_arras: 'AL_FIRMAR' | 'DIFERIDO';
+    forma_pago_arras: 'AL_FIRMAR' | 'POSTERIOR';
     plazo_pago_arras_dias?: number;
+    fecha_limite_pago_arras?: string;
     iban_vendedor?: string;
     banco_vendedor?: string;
     notario_designado_nombre?: string;
@@ -66,6 +69,13 @@ interface Contrato {
     firma_preferida: 'ELECTRONICA' | 'MANUSCRITA';
     condicion_suspensiva_texto?: string;
     observaciones?: string;
+
+    // Manifestaciones del vendedor
+    manifestacion_cosa_cierta?: boolean;
+    manifestacion_libre_ocupantes?: boolean;
+    manifestacion_libre_cargas?: boolean;
+    manifestacion_corriente_pagos?: boolean;
+    manifestacion_certificaciones?: boolean;
 }
 
 interface Parte {
