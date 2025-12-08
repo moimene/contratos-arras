@@ -30,6 +30,44 @@ interface PersonaFisica {
     obligado_firmar: boolean;
 }
 
+interface PersonaJuridica {
+    id?: string;
+    tipo: 'PERSONA_JURIDICA';
+    rol: 'COMPRADOR' | 'VENDEDOR';
+    denominacion: string;
+    cif: string;
+    domicilio_social?: string;
+    registro_mercantil?: {
+        provincia?: string;
+        tomo?: string;
+        libro?: string;
+        folio?: string;
+        hoja?: string;
+    };
+    representante: {
+        tipo_representante: 'ADMINISTRADOR_UNICO' | 'ADMINISTRADOR_SOLIDARIO' | 'ADMINISTRADOR_MANCOMUNADO' | 'APODERADO' | 'OTRO';
+        nombre: string;
+        apellidos: string;
+        tipo_documento: string;
+        numero_documento: string;
+        email: string;
+        base_representacion: 'CARGO' | 'PODER';
+        datos_inscripcion?: string;
+        poder_notarial?: {
+            notario: string;
+            fecha: string;
+            protocolo: string;
+            facultades: string;
+            vigencia: string;
+        };
+    };
+    porcentaje: number;
+    obligado_aceptar: boolean;
+    obligado_firmar: boolean;
+}
+
+type Parte = PersonaFisica | PersonaJuridica;
+
 export const Step3Partes: React.FC = () => {
     const { compradores, vendedores, addComprador, addVendedor, removeComprador, removeVendedor, setCurrentStep } = useContract();
 
@@ -37,6 +75,10 @@ export const Step3Partes: React.FC = () => {
     const [showVendedorForm, setShowVendedorForm] = useState(false);
     const [editingCompradorIndex, setEditingCompradorIndex] = useState<number | null>(null);
     const [editingVendedorIndex, setEditingVendedorIndex] = useState<number | null>(null);
+
+    // Toggle tipo persona
+    const [tipoCompradorForm, setTipoCompradorForm] = useState<'PERSONA_FISICA' | 'PERSONA_JURIDICA'>('PERSONA_FISICA');
+    const [tipoVendedorForm, setTipoVendedorForm] = useState<'PERSONA_FISICA' | 'PERSONA_JURIDICA'>('PERSONA_FISICA');
 
     const [formComprador, setFormComprador] = useState<PersonaFisica>({
         tipo: 'PERSONA_FISICA',
