@@ -530,3 +530,181 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+/* Step 1 Specific - Two Column Layout */
+.step-1-container {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.step-1-main {
+  min-width: 0;
+  /* Prevent grid blowout */
+}
+
+.step-1-sidebar {
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+}
+
+.sidebar-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--primary);
+}
+
+.sidebar-card h4 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 0.75rem;
+}
+
+.sidebar-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sidebar-section strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-section p {
+  margin: 0.25rem 0;
+  color: var(--gray-900);
+  font-size: 0.95rem;
+}
+
+.sidebar-section p.mono {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  background: var(--gray-100);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.text-muted {
+  color: var(--gray-500);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Anexos Section */
+.anexos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.anexos-header h3 {
+  margin: 0;
+}
+
+.anexo-form {
+  background: var(--gray-50);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid var(--primary);
+  margin: 1rem 0;
+}
+
+.anexo-form .btn {
+  margin-top: 1rem;
+}
+
+.anexos-list {
+  margin-top: 1rem;
+}
+
+.anexo-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  border: 2px solid var(--gray-200);
+  transition: all 0.2s ease;
+}
+
+.anexo-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.1);
+}
+
+.anexo-card div {
+  flex: 1;
+}
+
+.anexo-card strong {
+  display: block;
+  color: var(--gray-900);
+  margin-bottom: 0.25rem;
+}
+
+.anexo-card p {
+  margin: 0.125rem 0;
+  color: var(--gray-700);
+  font-size: 0.9rem;
+}
+
+.anexo-card small {
+  color: var(--gray-600);
+  font-size: 0.85rem;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+/* Info boxes */
+.info-box.small {
+  background: #EFF6FF;
+  border-left: 4px solid var(--secondary);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.info-box.small small {
+  color: var(--secondary);
+  display: block;
+  font-size: 0.875rem;
+}
+
+/* Responsive Step 1 */
+@media (max-width: 1024px) {
+  .step-1-container {
+    grid-template-columns: 1fr;
+  }
+
+  .step-1-sidebar {
+    position: static;
+    order: -1;
+    /* Show summary first on mobile */
+  }
+}
