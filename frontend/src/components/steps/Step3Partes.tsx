@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useContract } from '../../context/ContractContext';
+import { FormPersonaFisica } from './FormPersonaFisica';
+import { FormPersonaJuridica } from './FormPersonaJuridica';
+import { ParteCard } from './ParteCard';
 
+// Interfaces locales (duplicadas por simplicidad, considerar mover a types/)
 interface Conyuge {
     nombre: string;
     apellidos: string;
@@ -66,224 +70,274 @@ interface PersonaJuridica {
     obligado_firmar: boolean;
 }
 
+interface TerceroRelacionado {
+    id?: string;
+    tipo: 'ASESOR_COMPRADOR' | 'ASESOR_VENDEDOR' | 'AGENTE' | 'NOTARIA_CONTACTO' | 'OTRO';
+    nombre_razon_social: string;
+    email: string;
+    telefono?: string;
+    numero_colegiado?: string;
+    observaciones?: string;
+}
+
 type Parte = PersonaFisica | PersonaJuridica;
+
+const getInitialPF = (rol: 'COMPRADOR' | 'VENDEDOR'): PersonaFisica => ({
+    tipo: 'PERSONA_FISICA',
+    rol,
+    nombre: '',
+    apellidos: '',
+    tipo_documento: 'DNI',
+    numero_documento: '',
+    email: '',
+    telefono: '',
+    domicilio: '',
+    estado_civil: 'SOLTERO',
+    vivienda_habitual: false,
+    requiere_consentimiento_conyuge: false,
+    porcentaje: 100,
+    obligado_aceptar: true,
+    obligado_firmar: true,
+});
+
+const getInitialPJ = (rol: 'COMPRADOR' | 'VENDEDOR'): PersonaJuridica => ({
+    tipo: 'PERSONA_JURIDICA',
+    rol,
+    denominacion: '',
+    cif: '',
+    domicilio_social: '',
+    representante: {
+        tipo_representante: 'ADMINISTRADOR_UNICO',
+        nombre: '',
+        apellidos: '',
+        tipo_documento: 'DNI',
+        numero_documento: '',
+        email: '',
+        base_representacion: 'CARGO',
+    },
+    porcentaje: 100,
+    obligado_aceptar: true,
+    obligado_firmar: true,
+});
 
 export const Step3Partes: React.FC = () => {
     const { compradores, vendedores, addComprador, addVendedor, removeComprador, removeVendedor, setCurrentStep } = useContract();
 
     const [showCompradorForm, setShowCompradorForm] = useState(false);
     const [showVendedorForm, setShowVendedorForm] = useState(false);
-    const [editingCompradorIndex, setEditingCompradorIndex] = useState<number | null>(null);
-    const [editingVendedorIndex, setEditingVendedorIndex] = useState<number | null>(null);
+    const [showTerceroForm, setShowTerceroForm] = useState(false);
 
-    // Toggle tipo persona
+    // Tipo de formulario (PF o PJ)
     const [tipoCompradorForm, setTipoCompradorForm] = useState<'PERSONA_FISICA' | 'PERSONA_JURIDICA'>('PERSONA_FISICA');
     const [tipoVendedorForm, setTipoVendedorForm] = useState<'PERSONA_FISICA' | 'PERSONA_JURIDICA'>('PERSONA_FISICA');
 
-    const [formComprador, setFormComprador] = useState<PersonaFisica>({
-        tipo: 'PERSONA_FISICA',
-        rol: 'COMPRADOR',
-        nombre: '',
-        apellidos: '',
-        tipo_documento: 'DNI',
-        numero_documento: '',
+    // Forms state
+    const [formCompradorPF, setFormCompradorPF] = useState<PersonaFisica>(getInitialPF('COMPRADOR'));
+    const [formCompradorPJ, setFormCompradorPJ] = useState<PersonaJuridica>(getInitialPJ('COMPRADOR'));
+    const [formVendedorPF, setFormVendedorPF] = useState<PersonaFisica>(getInitialPF('VENDEDOR'));
+    const [formVendedorPJ, setFormVendedorPJ] = useState<PersonaJuridica>(getInitialPJ('VENDEDOR'));
+
+    const [terceros, setTerceros] = useState<TerceroRelacionado[]>([]);
+    const [formTercero, setFormTercero] = useState<TerceroRelacionado>({
+        tipo: 'ASESOR_COMPRADOR',
+        nombre_razon_social: '',
         email: '',
         telefono: '',
-        domicilio: '',
-        estado_civil: 'SOLTERO',
-        vivienda_habitual: false,
-        requiere_consentimiento_conyuge: false,
-        porcentaje: 100,
-        obligado_aceptar: true,
-        obligado_firmar: true,
     });
 
-    const [formVendedor, setFormVendedor] = useState<PersonaFisica>({
-        tipo: 'PERSONA_FISICA',
-        rol: 'VENDEDOR',
-        nombre: '',
-        apellidos: '',
-        tipo_documento: 'DNI',
-        numero_documento: '',
-        email: '',
-        telefono: '',
-        domicilio: '',
-        estado_civil: 'SOLTERO',
-        vivienda_habitual: false,
-        requiere_consentimiento_conyuge: false,
-        porcentaje: 100,
-        obligado_aceptar: true,
-        obligado_firmar: true,
-    });
-
-    // Auto-sugerir consentimiento conyugal
+    // Auto-sugerir consentimiento conyugal para PF
     useEffect(() => {
-        if (formComprador.estado_civil === 'CASADO') {
-            if (formComprador.regimen_economico === 'GANANCIALES') {
-                setFormComprador(prev => ({ ...prev, requiere_consentimiento_conyuge: true }));
-            } else if (formComprador.vivienda_habitual) {
-                setFormComprador(prev => ({ ...prev, requiere_consentimiento_conyuge: true }));
+        if (formCompradorPF.estado_civil === 'CASADO') {
+            if (formCompradorPF.regimen_economico === 'GANANCIALES' || formCompradorPF.vivienda_habitual) {
+                setFormCompradorPF(prev => ({ ...prev, requiere_consentimiento_conyuge: true }));
             }
         } else {
-            setFormComprador(prev => ({ ...prev, requiere_consentimiento_conyuge: false }));
+            setFormCompradorPF(prev => ({ ...prev, requiere_consentimiento_conyuge: false }));
         }
-    }, [formComprador.estado_civil, formComprador.regimen_economico, formComprador.vivienda_habitual]);
+    }, [formCompradorPF.estado_civil, formCompradorPF.regimen_economico, formCompradorPF.vivienda_habitual]);
 
     useEffect(() => {
-        if (formVendedor.estado_civil === 'CASADO') {
-            if (formVendedor.regimen_economico === 'GANANCIALES') {
-                setFormVendedor(prev => ({ ...prev, requiere_consentimiento_conyuge: true }));
-            } else if (formVendedor.vivienda_habitual) {
-                setFormVendedor(prev => ({ ...prev, requiere_consentimiento_conyuge: true }));
+        if (formVendedorPF.estado_civil === 'CASADO') {
+            if (formVendedorPF.regimen_economico === 'GANANCIALES' || formVendedorPF.vivienda_habitual) {
+                setFormVendedorPF(prev => ({ ...prev, requiere_consentimiento_conyuge: true }));
             }
         } else {
-            setFormVendedor(prev => ({ ...prev, requiere_consentimiento_conyuge: false }));
+            setFormVendedorPF(prev => ({ ...prev, requiere_consentimiento_conyuge: false }));
         }
-    }, [formVendedor.estado_civil, formVendedor.regimen_economico, formVendedor.vivienda_habitual]);
+    }, [formVendedorPF.estado_civil, formVendedorPF.regimen_economico, formVendedorPF.vivienda_habitual]);
 
-    const handleChangeComprador = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    // Handlers PF
+    const handleChangeCompradorPF = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-
         if (name.startsWith('conyuge.')) {
             const field = name.split('.')[1];
-            setFormComprador(prev => ({
+            setFormCompradorPF(prev => ({
                 ...prev,
-                conyuge: {
-                    ...prev.conyuge,
-                    [field]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-                } as Conyuge
+                conyuge: { ...prev.conyuge, [field]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value } as Conyuge
             }));
         } else {
-            setFormComprador(prev => ({
+            setFormCompradorPF(prev => ({
                 ...prev,
-                [name]: type === 'number' ? Number(value) :
-                    type === 'checkbox' ? (e.target as HTMLInputElement).checked :
-                        value
+                [name]: type === 'number' ? Number(value) : type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
             }));
         }
     };
 
-    const handleChangeVendedor = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChangeVendedorPF = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-
         if (name.startsWith('conyuge.')) {
             const field = name.split('.')[1];
-            setFormVendedor(prev => ({
+            setFormVendedorPF(prev => ({
                 ...prev,
-                conyuge: {
-                    ...prev.conyuge,
-                    [field]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-                } as Conyuge
+                conyuge: { ...prev.conyuge, [field]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value } as Conyuge
             }));
         } else {
-            setFormVendedor(prev => ({
+            setFormVendedorPF(prev => ({
                 ...prev,
-                [name]: type === 'number' ? Number(value) :
-                    type === 'checkbox' ? (e.target as HTMLInputElement).checked :
-                        value
+                [name]: type === 'number' ? Number(value) : type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
             }));
         }
     };
 
+    // Handlers PJ
+    const handleChangeCompradorPJ = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+
+        if (name.startsWith('representante.')) {
+            const field = name.split('.')[1];
+            if (field === 'poder_notarial') {
+                const subfield = name.split('.')[2];
+                setFormCompradorPJ(prev => ({
+                    ...prev,
+                    representante: {
+                        ...prev.representante,
+                        poder_notarial: { ...prev.representante.poder_notarial, [subfield]: value } as any
+                    }
+                }));
+            } else {
+                setFormCompradorPJ(prev => ({
+                    ...prev,
+                    representante: { ...prev.representante, [field]: value }
+                }));
+            }
+        } else if (name.startsWith('registro_mercantil.')) {
+            const field = name.split('.')[1];
+            setFormCompradorPJ(prev => ({
+                ...prev,
+                registro_mercantil: { ...prev.registro_mercantil, [field]: value }
+            }));
+        } else {
+            setFormCompradorPJ(prev => ({
+                ...prev,
+                [name]: name === 'porcentaje' ? Number(value) : type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+            }));
+        }
+    };
+
+    const handleChangeVendedorPJ = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+
+        if (name.startsWith('representante.')) {
+            const field = name.split('.')[1];
+            if (field === 'poder_notarial') {
+                const subfield = name.split('.')[2];
+                setFormVendedorPJ(prev => ({
+                    ...prev,
+                    representante: {
+                        ...prev.representante,
+                        poder_notarial: { ...prev.representante.poder_notarial, [subfield]: value } as any
+                    }
+                }));
+            } else {
+                setFormVendedorPJ(prev => ({
+                    ...prev,
+                    representante: { ...prev.representante, [field]: value }
+                }));
+            }
+        } else if (name.startsWith('registro_mercantil.')) {
+            const field = name.split('.')[1];
+            setFormVendedorPJ(prev => ({
+                ...prev,
+                registro_mercantil: { ...prev.registro_mercantil, [field]: value }
+            }));
+        } else {
+            setFormVendedorPJ(prev => ({
+                ...prev,
+                [name]: name === 'porcentaje' ? Number(value) : type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+            }));
+        }
+    };
+
+    // Submit handlers
     const handleAddComprador = () => {
-        if (!formComprador.nombre || !formComprador.apellidos || !formComprador.numero_documento || !formComprador.email) {
-            alert('Completa los campos obligatorios: Nombre, Apellidos, Nº Documento y Email.');
-            return;
-        }
+        const parte = tipoCompradorForm === 'PERSONA_FISICA' ? formCompradorPF : formCompradorPJ;
 
-        if (formComprador.requiere_consentimiento_conyuge && (!formComprador.conyuge?.nombre || !formComprador.conyuge?.numero_documento)) {
-            if (!confirm('Se requiere consentimiento del cónyuge pero no has completado sus datos. ¿Deseas continuar?')) {
+        // Validations
+        if (tipoCompradorForm === 'PERSONA_FISICA') {
+            if (!formCompradorPF.nombre || !formCompradorPF.apellidos || !formCompradorPF.numero_documento || !formCompradorPF.email) {
+                alert('Completa los campos obligatorios.');
+                return;
+            }
+        } else {
+            if (!formCompradorPJ.denominacion || !formCompradorPJ.cif || !formCompradorPJ.representante.nombre || !formCompradorPJ.representante.email) {
+                alert('Completa los campos obligatorios de la sociedad y el representante.');
                 return;
             }
         }
 
-        if (editingCompradorIndex !== null) {
-            // Update existing
-            const updated = [...compradores];
-            updated[editingCompradorIndex] = formComprador as any;
-            // Would need updateCompradores function
-            setEditingCompradorIndex(null);
-        } else {
-            addComprador(formComprador as any);
-        }
-
-        resetCompradorForm();
+        addComprador(parte as any);
+        resetCompradorForms();
         setShowCompradorForm(false);
     };
 
     const handleAddVendedor = () => {
-        if (!formVendedor.nombre || !formVendedor.apellidos || !formVendedor.numero_documento || !formVendedor.email) {
-            alert('Completa los campos obligatorios: Nombre, Apellidos, Nº Documento y Email.');
-            return;
-        }
+        const parte = tipoVendedorForm === 'PERSONA_FISICA' ? formVendedorPF : formVendedorPJ;
 
-        if (formVendedor.requiere_consentimiento_conyuge && (!formVendedor.conyuge?.nombre || !formVendedor.conyuge?.numero_documento)) {
-            if (!confirm('Se requiere consentimiento del cónyuge pero no has completado sus datos. ¿Deseas continuar?')) {
+        if (tipoVendedorForm === 'PERSONA_FISICA') {
+            if (!formVendedorPF.nombre || !formVendedorPF.apellidos || !formVendedorPF.numero_documento || !formVendedorPF.email) {
+                alert('Completa los campos obligatorios.');
+                return;
+            }
+        } else {
+            if (!formVendedorPJ.denominacion || !formVendedorPJ.cif || !formVendedorPJ.representante.nombre || !formVendedorPJ.representante.email) {
+                alert('Completa los campos obligatorios de la sociedad y el representante.');
                 return;
             }
         }
 
-        if (editingVendedorIndex !== null) {
-            setEditingVendedorIndex(null);
-        } else {
-            addVendedor(formVendedor as any);
-        }
-
-        resetVendedorForm();
+        addVendedor(parte as any);
+        resetVendedorForms();
         setShowVendedorForm(false);
     };
 
-    const resetCompradorForm = () => {
-        setFormComprador({
-            tipo: 'PERSONA_FISICA',
-            rol: 'COMPRADOR',
-            nombre: '',
-            apellidos: '',
-            tipo_documento: 'DNI',
-            numero_documento: '',
-            email: '',
-            telefono: '',
-            domicilio: '',
-            estado_civil: 'SOLTERO',
-            vivienda_habitual: false,
-            requiere_consentimiento_conyuge: false,
-            porcentaje: 100,
-            obligado_aceptar: true,
-            obligado_firmar: true,
-        });
+    const handleAddTercero = () => {
+        if (!formTercero.nombre_razon_social || !formTercero.email) {
+            alert('Completa Nombre/Razón Social y Email.');
+            return;
+        }
+        setTerceros([...terceros, { ...formTercero, id: Date.now().toString() }]);
+        setFormTercero({ tipo: 'ASESOR_COMPRADOR', nombre_razon_social: '', email: '', telefono: '' });
+        setShowTerceroForm(false);
     };
 
-    const resetVendedorForm = () => {
-        setFormVendedor({
-            tipo: 'PERSONA_FISICA',
-            rol: 'VENDEDOR',
-            nombre: '',
-            apellidos: '',
-            tipo_documento: 'DNI',
-            numero_documento: '',
-            email: '',
-            telefono: '',
-            domicilio: '',
-            estado_civil: 'SOLTERO',
-            vivienda_habitual: false,
-            requiere_consentimiento_conyuge: false,
-            porcentaje: 100,
-            obligado_aceptar: true,
-            obligado_firmar: true,
-        });
+    const resetCompradorForms = () => {
+        setFormCompradorPF(getInitialPF('COMPRADOR'));
+        setFormCompradorPJ(getInitialPJ('COMPRADOR'));
+    };
+
+    const resetVendedorForms = () => {
+        setFormVendedorPF(getInitialPF('VENDEDOR'));
+        setFormVendedorPJ(getInitialPJ('VENDEDOR'));
     };
 
     const getConsentimientoSugerencia = (estadoCivil?: string, regimen?: string, viviendaHabitual?: boolean) => {
         if (estadoCivil !== 'CASADO') return null;
-
         if (regimen === 'GANANCIALES') {
             return '⚠️ En régimen de gananciales, salvo pacto, se requiere consentimiento del cónyuge para disponer.';
         }
-
         if (viviendaHabitual) {
             return 'ℹ️ Si la vivienda es habitual, puede requerirse consentimiento del cónyuge (art. 1320 CC).';
         }
-
         return null;
     };
 
@@ -295,23 +349,28 @@ export const Step3Partes: React.FC = () => {
             return;
         }
 
-        // Validate percentages
         const sumCompradores = compradores.reduce((sum: number, c: any) => sum + (c.porcentaje || 0), 0);
         const sumVendedores = vendedores.reduce((sum: number, v: any) => sum + (v.porcentaje || 0), 0);
 
         if (Math.abs(sumCompradores - 100) > 0.01) {
-            if (!confirm(`Los porcentajes de compradores suman ${sumCompradores.toFixed(2)}%. ¿Deseas continuar de todos modos?`)) {
-                return;
-            }
+            if (!confirm(`Los porcentajes de compradores suman ${sumCompradores.toFixed(2)}%. ¿Continuar?`)) return;
         }
-
         if (Math.abs(sumVendedores - 100) > 0.01) {
-            if (!confirm(`Los porcentajes de vendedores suman ${sumVendedores.toFixed(2)}%. ¿Deseas continuar de todos modos?`)) {
-                return;
-            }
+            if (!confirm(`Los porcentajes de vendedores suman ${sumVendedores.toFixed(2)}%. ¿Continuar?`)) return;
         }
 
         setCurrentStep(4);
+    };
+
+    const getTipoTerceroLabel = (tipo: string) => {
+        const labels: Record<string, string> = {
+            ASESOR_COMPRADOR: 'Asesor del comprador',
+            ASESOR_VENDEDOR: 'Asesor del vendedor',
+            AGENTE: 'Agente inmobiliario',
+            NOTARIA_CONTACTO: 'Notaría de contacto',
+            OTRO: 'Otro'
+        };
+        return labels[tipo] || tipo;
     };
 
     return (
@@ -331,401 +390,160 @@ export const Step3Partes: React.FC = () => {
                     <div className="form-section">
                         <div className="partes-header">
                             <h3>1️⃣ Compradores</h3>
-                            <button type="button" onClick={() => { setShowCompradorForm(!showCompradorForm); if (!showCompradorForm) resetCompradorForm(); }} className="btn btn-secondary">
+                            <button type="button" onClick={() => { setShowCompradorForm(!showCompradorForm); if (!showCompradorForm) resetCompradorForms(); }} className="btn btn-secondary">
                                 {showCompradorForm ? 'Cancelar' : '+ Añadir comprador'}
                             </button>
                         </div>
 
                         {showCompradorForm && (
-                            <div className="parte-form-pf">
-                                <h4>Datos del comprador (Persona física)</h4>
-
-                                {/* Datos básicos */}
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Nombre <span className="required">*</span></label>
-                                        <input type="text" name="nombre" value={formComprador.nombre} onChange={handleChangeComprador} required placeholder="Laura" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Apellidos <span className="required">*</span></label>
-                                        <input type="text" name="apellidos" value={formComprador.apellidos} onChange={handleChangeComprador} required placeholder="Pérez Gómez" />
-                                    </div>
+                            <>
+                                <div className="tipo-persona-toggle">
+                                    <label>
+                                        <input type="radio" name="tipoComprador" value="PERSONA_FISICA" checked={tipoCompradorForm === 'PERSONA_FISICA'} onChange={() => setTipoCompradorForm('PERSONA_FISICA')} />
+                                        <span>🧑 Persona física</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="tipoComprador" value="PERSONA_JURIDICA" checked={tipoCompradorForm === 'PERSONA_JURIDICA'} onChange={() => setTipoCompradorForm('PERSONA_JURIDICA')} />
+                                        <span>🏢 Persona jurídica (sociedad)</span>
+                                    </label>
                                 </div>
 
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Tipo de documento <span className="required">*</span></label>
-                                        <select name="tipo_documento" value={formComprador.tipo_documento} onChange={handleChangeComprador} required>
-                                            <option value="DNI">DNI</option>
-                                            <option value="NIE">NIE</option>
-                                            <option value="PASAPORTE">Pasaporte</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Nº de documento <span className="required">*</span></label>
-                                        <input type="text" name="numero_documento" value={formComprador.numero_documento} onChange={handleChangeComprador} required placeholder="00000000X" />
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Email <span className="required">*</span></label>
-                                        <input type="email" name="email" value={formComprador.email} onChange={handleChangeComprador} required placeholder="laura@example.com" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Teléfono (recomendado)</label>
-                                        <input type="tel" name="telefono" value={formComprador.telefono} onChange={handleChangeComprador} placeholder="600000000" />
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Domicilio (recomendado)</label>
-                                    <input type="text" name="domicilio" value={formComprador.domicilio} onChange={handleChangeComprador} placeholder="C/ Ejemplo 1, Madrid" />
-                                </div>
-
-                                {/* Estado civil y régimen */}
-                                <div className="subsection-regimen">
-                                    <h5>Estado Civil y Régimen Económico</h5>
-
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Estado civil</label>
-                                            <select name="estado_civil" value={formComprador.estado_civil} onChange={handleChangeComprador}>
-                                                <option value="SOLTERO">Soltero/a</option>
-                                                <option value="CASADO">Casado/a</option>
-                                                <option value="DIVORCIADO">Divorciado/a</option>
-                                                <option value="VIUDO">Viudo/a</option>
-                                                <option value="PAREJA_HECHO">Pareja de hecho</option>
-                                            </select>
-                                        </div>
-
-                                        {formComprador.estado_civil === 'CASADO' && (
-                                            <div className="form-group">
-                                                <label>Régimen económico matrimonial</label>
-                                                <select name="regimen_economico" value={formComprador.regimen_economico} onChange={handleChangeComprador}>
-                                                    <option value="">Seleccionar...</option>
-                                                    <option value="GANANCIALES">Sociedad de gananciales</option>
-                                                    <option value="SEPARACION_BIENES">Separación de bienes</option>
-                                                    <option value="PARTICIPACION">Participación (u otro)</option>
-                                                </select>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {formComprador.estado_civil === 'CASADO' && (
-                                        <>
-                                            <div className="form-group">
-                                                <label>
-                                                    <input type="checkbox" name="vivienda_habitual" checked={formComprador.vivienda_habitual} onChange={handleChangeComprador} />
-                                                    &nbsp;¿El inmueble es vivienda habitual?
-                                                </label>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label>
-                                                    <input type="checkbox" name="requiere_consentimiento_conyuge" checked={formComprador.requiere_consentimiento_conyuge} onChange={handleChangeComprador} />
-                                                    &nbsp;¿Se requiere consentimiento del cónyuge?
-                                                </label>
-                                            </div>
-
-                                            {getConsentimientoSugerencia(formComprador.estado_civil, formComprador.regimen_economico, formComprador.vivienda_habitual) && (
-                                                <div className="info-box small">
-                                                    <small>{getConsentimientoSugerencia(formComprador.estado_civil, formComprador.regimen_economico, formComprador.vivienda_habitual)}</small>
-                                                </div>
-                                            )}
-
-                                            {formComprador.requiere_consentimiento_conyuge && (
-                                                <div className="subsection-conyuge">
-                                                    <h6>Datos del Cónyuge</h6>
-                                                    <div className="form-row">
-                                                        <div className="form-group">
-                                                            <label>Nombre del cónyuge</label>
-                                                            <input type="text" name="conyuge.nombre" value={formComprador.conyuge?.nombre || ''} onChange={handleChangeComprador} placeholder="Carlos" />
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label>Apellidos del cónyuge</label>
-                                                            <input type="text" name="conyuge.apellidos" value={formComprador.conyuge?.apellidos || ''} onChange={handleChangeComprador} placeholder="Ruiz" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="form-row">
-                                                        <div className="form-group">
-                                                            <label>Tipo de documento</label>
-                                                            <select name="conyuge.tipo_documento" value={formComprador.conyuge?.tipo_documento || 'DNI'} onChange={handleChangeComprador}>
-                                                                <option value="DNI">DNI</option>
-                                                                <option value="NIE">NIE</option>
-                                                                <option value="PASAPORTE">Pasaporte</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label>Nº de documento</label>
-                                                            <input type="text" name="conyuge.numero_documento" value={formComprador.conyuge?.numero_documento || ''} onChange={handleChangeComprador} placeholder="11111111Y" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>
-                                                            <input type="checkbox" name="conyuge.comparecera" checked={formComprador.conyuge?.comparecera || false} onChange={handleChangeComprador} />
-                                                            &nbsp;El cónyuge comparecerá para prestar consentimiento
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-
-                                    <div className="info-box small">
-                                        <small>ℹ️ Si es vivienda habitual, puede requerirse consentimiento del cónyuge, incluso en separación de bienes.</small>
-                                    </div>
-                                </div>
-
-                                {/* Porcentaje y flags */}
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Porcentaje de participación (%)</label>
-                                        <input type="number" name="porcentaje" value={formComprador.porcentaje} onChange={handleChangeComprador} min="0" max="100" step="0.01" />
-                                        <small>En copropiedad, el porcentaje debe sumar 100%.</small>
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>
-                                            <input type="checkbox" name="obligado_aceptar" checked={formComprador.obligado_aceptar} onChange={handleChangeComprador} />
-                                            &nbsp;Obligado a aceptar términos
-                                        </label>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>
-                                            <input type="checkbox" name="obligado_firmar" checked={formComprador.obligado_firmar} onChange={handleChangeComprador} />
-                                            &nbsp;Obligado a firmar
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <button type="button" onClick={handleAddComprador} className="btn btn-primary">
-                                    {editingCompradorIndex !== null ? 'Actualizar comprador' : 'Guardar comprador'}
-                                </button>
-                            </div>
+                                {tipoCompradorForm === 'PERSONA_FISICA' ? (
+                                    <FormPersonaFisica
+                                        formData={formCompradorPF}
+                                        onChange={handleChangeCompradorPF}
+                                        onSubmit={handleAddComprador}
+                                        getConsentimientoSugerencia={getConsentimientoSugerencia}
+                                    />
+                                ) : (
+                                    <FormPersonaJuridica
+                                        formData={formCompradorPJ}
+                                        onChange={handleChangeCompradorPJ}
+                                        onSubmit={handleAddComprador}
+                                    />
+                                )}
+                            </>
                         )}
 
-                        {/* Lista de compradores */}
                         <div className="partes-list">
                             {compradores.map((c: any, i: number) => (
-                                <div key={i} className="parte-card-full">
-                                    <div className="parte-info-full">
-                                        <h4>{c.nombre} {c.apellidos}</h4>
-                                        <p><strong>{c.tipo_documento}:</strong> {c.numero_documento}</p>
-                                        <p><strong>Email:</strong> {c.email}</p>
-                                        {c.estado_civil === 'CASADO' && <p><strong>Estado civil:</strong> Casado/a ({c.regimen_economico || 'No especificado'})</p>}
-                                        {c.requiere_consentimiento_conyuge && <p className="warning-text">⚠️ Requiere consentimiento del cónyuge</p>}
-                                        <p><strong>Participación:</strong> {c.porcentaje}%</p>
-                                        <div className="flags">
-                                            {c.obligado_aceptar && <span className="flag-badge">Acepta</span>}
-                                            {c.obligado_firmar && <span className="flag-badge">Firma</span>}
-                                        </div>
-                                    </div>
-                                    <button type="button" onClick={() => removeComprador(i)} className="btn-remove">🗑️</button>
-                                </div>
+                                <ParteCard key={i} parte={c} onRemove={() => removeComprador(i)} />
                             ))}
                         </div>
                     </div>
 
-                    {/* 2. VENDEDORES - MISMA ESTRUCTURA */}
+                    {/* 2. VENDEDORES */}
                     <div className="form-section">
                         <div className="partes-header">
                             <h3>2️⃣ Vendedores</h3>
-                            <button type="button" onClick={() => { setShowVendedorForm(!showVendedorForm); if (!showVendedorForm) resetVendedorForm(); }} className="btn btn-secondary">
+                            <button type="button" onClick={() => { setShowVendedorForm(!showVendedorForm); if (!showVendedorForm) resetVendedorForms(); }} className="btn btn-secondary">
                                 {showVendedorForm ? 'Cancelar' : '+ Añadir vendedor'}
                             </button>
                         </div>
 
                         {showVendedorForm && (
-                            <div className="parte-form-pf">
-                                <h4>Datos del vendedor (Persona física)</h4>
-
-                                {/* Repetir estructura similar para vendedor */}
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Nombre <span className="required">*</span></label>
-                                        <input type="text" name="nombre" value={formVendedor.nombre} onChange={handleChangeVendedor} required />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Apellidos <span className="required">*</span></label>
-                                        <input type="text" name="apellidos" value={formVendedor.apellidos} onChange={handleChangeVendedor} required />
-                                    </div>
+                            <>
+                                <div className="tipo-persona-toggle">
+                                    <label>
+                                        <input type="radio" name="tipoVendedor" value="PERSONA_FISICA" checked={tipoVendedorForm === 'PERSONA_FISICA'} onChange={() => setTipoVendedorForm('PERSONA_FISICA')} />
+                                        <span>🧑 Persona física</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="tipoVendedor" value="PERSONA_JURIDICA" checked={tipoVendedorForm === 'PERSONA_JURIDICA'} onChange={() => setTipoVendedorForm('PERSONA_JURIDICA')} />
+                                        <span>🏢 Persona jurídica (sociedad)</span>
+                                    </label>
                                 </div>
 
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Tipo de documento <span className="required">*</span></label>
-                                        <select name="tipo_documento" value={formVendedor.tipo_documento} onChange={handleChangeVendedor} required>
-                                            <option value="DNI">DNI</option>
-                                            <option value="NIE">NIE</option>
-                                            <option value="PASAPORTE">Pasaporte</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Nº de documento <span className="required">*</span></label>
-                                        <input type="text" name="numero_documento" value={formVendedor.numero_documento} onChange={handleChangeVendedor} required />
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Email <span className="required">*</span></label>
-                                        <input type="email" name="email" value={formVendedor.email} onChange={handleChangeVendedor} required />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Teléfono</label>
-                                        <input type="tel" name="telefono" value={formVendedor.telefono} onChange={handleChangeVendedor} />
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Domicilio</label>
-                                    <input type="text" name="domicilio" value={formVendedor.domicilio} onChange={handleChangeVendedor} />
-                                </div>
-
-                                {/* Estado civil - igual que comprador */}
-                                <div className="subsection-regimen">
-                                    <h5>Estado Civil y Régimen Económico</h5>
-
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Estado civil</label>
-                                            <select name="estado_civil" value={formVendedor.estado_civil} onChange={handleChangeVendedor}>
-                                                <option value="SOLTERO">Soltero/a</option>
-                                                <option value="CASADO">Casado/a</option>
-                                                <option value="DIVORCIADO">Divorciado/a</option>
-                                                <option value="VIUDO">Viudo/a</option>
-                                                <option value="PAREJA_HECHO">Pareja de hecho</option>
-                                            </select>
-                                        </div>
-
-                                        {formVendedor.estado_civil === 'CASADO' && (
-                                            <div className="form-group">
-                                                <label>Régimen económico</label>
-                                                <select name="regimen_economico" value={formVendedor.regimen_economico} onChange={handleChangeVendedor}>
-                                                    <option value="">Seleccionar...</option>
-                                                    <option value="GANANCIALES">Sociedad de gananciales</option>
-                                                    <option value="SEPARACION_BIENES">Separación de bienes</option>
-                                                    <option value="PARTICIPACION">Participación (u otro)</option>
-                                                </select>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {formVendedor.estado_civil === 'CASADO' && (
-                                        <>
-                                            <div className="form-group">
-                                                <label>
-                                                    <input type="checkbox" name="vivienda_habitual" checked={formVendedor.vivienda_habitual} onChange={handleChangeVendedor} />
-                                                    &nbsp;¿El inmueble es vivienda habitual?
-                                                </label>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label>
-                                                    <input type="checkbox" name="requiere_consentimiento_conyuge" checked={formVendedor.requiere_consentimiento_conyuge} onChange={handleChangeVendedor} />
-                                                    &nbsp;¿Se requiere consentimiento del cónyuge?
-                                                </label>
-                                            </div>
-
-                                            {getConsentimientoSugerencia(formVendedor.estado_civil, formVendedor.regimen_economico, formVendedor.vivienda_habitual) && (
-                                                <div className="info-box small">
-                                                    <small>{getConsentimientoSugerencia(formVendedor.estado_civil, formVendedor.regimen_economico, formVendedor.vivienda_habitual)}</small>
-                                                </div>
-                                            )}
-
-                                            {formVendedor.requiere_consentimiento_conyuge && (
-                                                <div className="subsection-conyuge">
-                                                    <h6>Datos del Cónyuge</h6>
-                                                    <div className="form-row">
-                                                        <div className="form-group">
-                                                            <label>Nombre</label>
-                                                            <input type="text" name="conyuge.nombre" value={formVendedor.conyuge?.nombre || ''} onChange={handleChangeVendedor} />
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label>Apellidos</label>
-                                                            <input type="text" name="conyuge.apellidos" value={formVendedor.conyuge?.apellidos || ''} onChange={handleChangeVendedor} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="form-row">
-                                                        <div className="form-group">
-                                                            <label>Tipo documento</label>
-                                                            <select name="conyuge.tipo_documento" value={formVendedor.conyuge?.tipo_documento || 'DNI'} onChange={handleChangeVendedor}>
-                                                                <option value="DNI">DNI</option>
-                                                                <option value="NIE">NIE</option>
-                                                                <option value="PASAPORTE">Pasaporte</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label>Nº documento</label>
-                                                            <input type="text" name="conyuge.numero_documento" value={formVendedor.conyuge?.numero_documento || ''} onChange={handleChangeVendedor} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>
-                                                            <input type="checkbox" name="conyuge.comparecera" checked={formVendedor.conyuge?.comparecera || false} onChange={handleChangeVendedor} />
-                                                            &nbsp;El cónyuge comparecerá
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Porcentaje (%)</label>
-                                        <input type="number" name="porcentaje" value={formVendedor.porcentaje} onChange={handleChangeVendedor} min="0" max="100" step="0.01" />
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>
-                                            <input type="checkbox" name="obligado_aceptar" checked={formVendedor.obligado_aceptar} onChange={handleChangeVendedor} />
-                                            &nbsp;Obligado a aceptar
-                                        </label>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>
-                                            <input type="checkbox" name="obligado_firmar" checked={formVendedor.obligado_firmar} onChange={handleChangeVendedor} />
-                                            &nbsp;Obligado a firmar
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <button type="button" onClick={handleAddVendedor} className="btn btn-primary">
-                                    Guardar vendedor
-                                </button>
-                            </div>
+                                {tipoVendedorForm === 'PERSONA_FISICA' ? (
+                                    <FormPersonaFisica
+                                        formData={formVendedorPF}
+                                        onChange={handleChangeVendedorPF}
+                                        onSubmit={handleAddVendedor}
+                                        getConsentimientoSugerencia={getConsentimientoSugerencia}
+                                    />
+                                ) : (
+                                    <FormPersonaJuridica
+                                        formData={formVendedorPJ}
+                                        onChange={handleChangeVendedorPJ}
+                                        onSubmit={handleAddVendedor}
+                                    />
+                                )}
+                            </>
                         )}
 
-                        {/* Lista vendedores */}
                         <div className="partes-list">
                             {vendedores.map((v: any, i: number) => (
-                                <div key={i} className="parte-card-full">
-                                    <div className="parte-info-full">
-                                        <h4>{v.nombre} {v.apellidos}</h4>
-                                        <p><strong>{v.tipo_documento}:</strong> {v.numero_documento}</p>
-                                        <p><strong>Email:</strong> {v.email}</p>
-                                        {v.estado_civil === 'CASADO' && <p><strong>Estado civil:</strong> Casado/a ({v.regimen_economico || 'No especificado'})</p>}
-                                        {v.requiere_consentimiento_conyuge && <p className="warning-text">⚠️ Requiere consentimiento del cónyuge</p>}
-                                        <p><strong>Participación:</strong> {v.porcentaje}%</p>
-                                        <div className="flags">
-                                            {v.obligado_aceptar && <span className="flag-badge">Acepta</span>}
-                                            {v.obligado_firmar && <span className="flag-badge">Firma</span>}
-                                        </div>
-                                    </div>
-                                    <button type="button" onClick={() => removeVendedor(i)} className="btn-remove">🗑️</button>
-                                </div>
+                                <ParteCard key={i} parte={v} onRemove={() => removeVendedor(i)} />
                             ))}
                         </div>
                     </div>
 
-                    {/* Form actions */}
+                    {/* 3. TERCEROS RELACIONADOS */}
+                    <div className="form-section">
+                        <div className="partes-header">
+                            <h3>3️⃣ Terceros Relacionados (opcional)</h3>
+                            <button type="button" onClick={() => setShowTerceroForm(!showTerceroForm)} className="btn btn-secondary">
+                                {showTerceroForm ? 'Cancelar' : '+ Añadir tercero'}
+                            </button>
+                        </div>
+
+                        {showTerceroForm && (
+                            <div className="tercero-form">
+                                <h4>Datos del tercero</h4>
+                                <div className="form-group">
+                                    <label>Tipo <span className="required">*</span></label>
+                                    <select name="tipo" value={formTercero.tipo} onChange={(e) => setFormTercero({ ...formTercero, tipo: e.target.value as any })} required>
+                                        <option value="ASESOR_COMPRADOR">Asesor del comprador</option>
+                                        <option value="ASESOR_VENDEDOR">Asesor del vendedor</option>
+                                        <option value="AGENTE">Agente inmobiliario</option>
+                                        <option value="NOTARIA_CONTACTO">Notaría de contacto</option>
+                                        <option value="OTRO">Otro</option>
+                                    </select>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Nombre / Razón social <span className="required">*</span></label>
+                                        <input type="text" value={formTercero.nombre_razon_social} onChange={(e) => setFormTercero({ ...formTercero, nombre_razon_social: e.target.value })} required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Email <span className="required">*</span></label>
+                                        <input type="email" value={formTercero.email} onChange={(e) => setFormTercero({ ...formTercero, email: e.target.value })} required />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Teléfono</label>
+                                        <input type="tel" value={formTercero.telefono || ''} onChange={(e) => setFormTercero({ ...formTercero, telefono: e.target.value })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Nº colegiado (si aplica)</label>
+                                        <input type="text" value={formTercero.numero_colegiado || ''} onChange={(e) => setFormTercero({ ...formTercero, numero_colegiado: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Observaciones</label>
+                                    <textarea rows={2} value={formTercero.observaciones || ''} onChange={(e) => setFormTercero({ ...formTercero, observaciones: e.target.value })} maxLength={300} />
+                                </div>
+                                <button type="button" onClick={handleAddTercero} className="btn btn-primary">Guardar tercero</button>
+                            </div>
+                        )}
+
+                        {terceros.length > 0 && (
+                            <div className="terceros-list">
+                                {terceros.map((t) => (
+                                    <div key={t.id} className="tercero-card">
+                                        <div>
+                                            <strong>{getTipoTerceroLabel(t.tipo)}</strong>
+                                            <p>{t.nombre_razon_social}</p>
+                                            <small>{t.email} {t.telefono && `• ${t.telefono}`}</small>
+                                        </div>
+                                        <button type="button" onClick={() => setTerceros(terceros.filter(x => x.id !== t.id))} className="btn-remove">🗑️</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="form-actions">
                         <button type="button" onClick={() => setCurrentStep(2)} className="btn btn-secondary">
                             ← Atrás
@@ -749,7 +567,7 @@ export const Step3Partes: React.FC = () => {
                         ) : (
                             compradores.map((c: any, i: number) => (
                                 <div key={i} className="sidebar-parte">
-                                    <p>{c.nombre} {c.apellidos}</p>
+                                    <p>{c.tipo === 'PERSONA_FISICA' ? `${c.nombre} ${c.apellidos}` : c.denominacion}</p>
                                     <small>{c.porcentaje}%</small>
                                     {c.requiere_consentimiento_conyuge && <small className="warning-text">⚠️ Cónyuge</small>}
                                 </div>
@@ -770,7 +588,7 @@ export const Step3Partes: React.FC = () => {
                         ) : (
                             vendedores.map((v: any, i: number) => (
                                 <div key={i} className="sidebar-parte">
-                                    <p>{v.nombre} {v.apellidos}</p>
+                                    <p>{v.tipo === 'PERSONA_FISICA' ? `${v.nombre} ${v.apellidos}` : v.denominacion}</p>
                                     <small>{v.porcentaje}%</small>
                                     {v.requiere_consentimiento_conyuge && <small className="warning-text">⚠️ Cónyuge</small>}
                                 </div>
@@ -783,6 +601,18 @@ export const Step3Partes: React.FC = () => {
                             </p>
                         )}
                     </div>
+
+                    {terceros.length > 0 && (
+                        <div className="sidebar-section">
+                            <strong>Terceros ({terceros.length})</strong>
+                            {terceros.map((t) => (
+                                <div key={t.id} className="sidebar-tercero">
+                                    <small>{getTipoTerceroLabel(t.tipo)}</small>
+                                    <p>{t.nombre_razon_social}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {(compradores.length === 0 || vendedores.length === 0) && (
                         <div className="sidebar-alert">
