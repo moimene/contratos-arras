@@ -129,7 +129,7 @@ export const Step4Resumen: React.FC = () => {
     };
 
     const generateNarrativeSummary = () => {
-        const inmuebleDesc = `El inmueble sito en ${inmueble.direccion_completa || '-'}, ${inmueble.cp || '-'} ${inmueble.ciudad || '-'}, ${inmueble.provincia || '-'}${inmueble.referencia_catastral ? `, con referencia catastral ${inmueble.referencia_catastral}` : ''}${inmueble.finca_numero ? ` y Finca ${inmueble.finca_numero}, Registro de la Propiedad nº ${inmueble.rp_numero || '-'} (${inmueble.rp_localidad || '-'})` : ''}, es objeto del presente acuerdo.`;
+        const inmuebleDesc = `El inmueble sito en ${inmueble.direccion_completa || '-'}, ${inmueble.codigo_postal || '-'} ${inmueble.ciudad || '-'}, ${inmueble.provincia || '-'}${inmueble.referencia_catastral ? `, con referencia catastral ${inmueble.referencia_catastral}` : ''}${inmueble.finca_numero ? ` y Finca ${inmueble.finca_numero}, Registro de la Propiedad nº ${inmueble.rp_numero || '-'} (${inmueble.rp_localidad || '-'})` : ''}, es objeto del presente acuerdo.`;
 
         // Anexos si existen
         const anexosDesc = inmueble.anexos && inmueble.anexos.length > 0
@@ -231,7 +231,7 @@ export const Step4Resumen: React.FC = () => {
                             </div>
                             <div className="summary-row">
                                 <strong>Localidad:</strong>
-                                <span>{inmueble.cp} {inmueble.ciudad}, {inmueble.provincia}</span>
+                                <span>{inmueble.codigo_postal} {inmueble.ciudad}, {inmueble.provincia}</span>
                             </div>
                             {inmueble.referencia_catastral && (
                                 <div className="summary-row">
@@ -273,11 +273,11 @@ export const Step4Resumen: React.FC = () => {
                         <div className="summary-content">
                             <div className="summary-row highlight">
                                 <strong>Precio total:</strong>
-                                <span className="precio-grande">{formatCurrency(contrato.precio_total)}</span>
+                                <span className="precio-grande">{formatCurrency(contrato.precio_total || 0)}</span>
                             </div>
                             <div className="summary-row highlight">
                                 <strong>Importe de arras:</strong>
-                                <span className="arras-grande">{formatCurrency(contrato.importe_arras)} ({calculatePercentage()}%)</span>
+                                <span className="arras-grande">{formatCurrency(contrato.importe_arras || 0)} ({calculatePercentage()}%)</span>
                             </div>
                             <div className="summary-row">
                                 <strong>Naturaleza de las arras:</strong>
@@ -324,7 +324,7 @@ export const Step4Resumen: React.FC = () => {
                         <div className="summary-content">
                             <div className="summary-row">
                                 <strong>Fecha límite escritura:</strong>
-                                <span>{formatDate(contrato.fecha_limite_firma_escritura)}</span>
+                                <span>{formatDate(contrato.fecha_limite_firma_escritura || '')}</span>
                             </div>
                             {contrato.notario_designado_nombre && (
                                 <div className="summary-row">
