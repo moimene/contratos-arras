@@ -1,54 +1,53 @@
-```typescript
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 
 // Tipos
 interface Inmueble {
-  direccion_completa: string;
-  codigo_postal?: string;
-  ciudad: string;
-  provincia: string;
-  portal?: string;
-  piso?: string;
-  puerta?: string;
-  url_anuncio?: string;
-  
-  // Catastro
-  referencia_catastral?: string;
-  uso_catastral?: string;
-  superficie_construida_catastro?: number;
-  anio_construccion_catastro?: number;
-  
-  // Registro
-  rp_numero?: string;
-  rp_localidad?: string;
-  finca_numero?: string;
-  cru_idufir?: string;
-  tomo?: string;
-  libro?: string;
-  folio?: string;
-  seccion?: string;
-  datos_registrales?: string;
-  titulo_adquisicion_vendedor?: string;
-  
-  // Características
-  m2?: number;
-  m2_utiles?: number;
-  habitaciones?: number;
-  banos?: number;
-  ascensor?: boolean;
-  planta?: string;
-  descripcion_libre?: string;
-  
-  // Anexos
-  anexos?: Array<{
-    tipo: string;
-    ubicacion?: string;
-    superficie?: number;
+    direccion_completa: string;
+    codigo_postal?: string;
+    ciudad: string;
+    provincia: string;
+    portal?: string;
+    piso?: string;
+    puerta?: string;
+    url_anuncio?: string;
+
+    // Catastro
     referencia_catastral?: string;
+    uso_catastral?: string;
+    superficie_construida_catastro?: number;
+    anio_construccion_catastro?: number;
+
+    // Registro
+    rp_numero?: string;
+    rp_localidad?: string;
     finca_numero?: string;
-    vinculacion?: string;
-    descripcion?: string;
-  }>;
+    cru_idufir?: string;
+    tomo?: string;
+    libro?: string;
+    folio?: string;
+    seccion?: string;
+    datos_registrales?: string;
+    titulo_adquisicion_vendedor?: string;
+
+    // Características
+    m2?: number;
+    m2_utiles?: number;
+    habitaciones?: number;
+    banos?: number;
+    ascensor?: boolean;
+    planta?: string;
+    descripcion_libre?: string;
+
+    // Anexos
+    anexos?: Array<{
+        tipo: string;
+        ubicacion?: string;
+        superficie?: number;
+        referencia_catastral?: string;
+        finca_numero?: string;
+        vinculacion?: string;
+        descripcion?: string;
+    }>;
 }
 
 interface Contrato {
@@ -178,79 +177,79 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
                 });
                 const parteData = await parteRes.json();
 
-                await fetch(`/ api / contratos / ${ data.id }/partes`, {
-method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-    parteId: parteData.id,
-    rolEnContrato: 'VENDEDOR',
-    obligadoAceptar: true,
-    obligadoFirmar: true,
-}),
+                await fetch(`/api/contratos/${data.id}/partes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        parteId: parteData.id,
+                        rolEnContrato: 'VENDEDOR',
+                        obligadoAceptar: true,
+                        obligadoFirmar: true,
+                    }),
                 });
             }
 
-for (const comprador of compradores) {
-    const parteRes = await fetch('/api/partes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...comprador, rol: 'COMPRADOR' }),
-    });
-    const parteData = await parteRes.json();
+            for (const comprador of compradores) {
+                const parteRes = await fetch('/api/partes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...comprador, rol: 'COMPRADOR' }),
+                });
+                const parteData = await parteRes.json();
 
-    await fetch(`/api/contratos/${data.id}/partes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            parteId: parteData.id,
-            rolEnContrato: 'COMPRADOR',
-            obligadoAceptar: true,
-            obligadoFirmar: true,
-            porcentajePropiedad: 100,
-        }),
-    });
-}
+                await fetch(`/api/contratos/${data.id}/partes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        parteId: parteData.id,
+                        rolEnContrato: 'COMPRADOR',
+                        obligadoAceptar: true,
+                        obligadoFirmar: true,
+                        porcentajePropiedad: 100,
+                    }),
+                });
+            }
         } catch (error) {
-    console.error('Error:', error);
-    throw error;
-}
+            console.error('Error:', error);
+            throw error;
+        }
     };
 
-const reset = () => {
-    setCurrentStep(1);
-    setInmueble({});
-    setContrato({
-        tipo_arras: 'PENITENCIALES',
-        gastos_quien: 'LEY',
-        via_resolucion: 'JUZGADOS',
-        firma_preferida: 'ELECTRONICA',
-    });
-    setCompradores([]);
-    setVendedores([]);
-    setContratoId(undefined);
-};
+    const reset = () => {
+        setCurrentStep(1);
+        setInmueble({});
+        setContrato({
+            tipo_arras: 'PENITENCIALES',
+            gastos_quien: 'LEY',
+            via_resolucion: 'JUZGADOS',
+            firma_preferida: 'ELECTRONICA',
+        });
+        setCompradores([]);
+        setVendedores([]);
+        setContratoId(undefined);
+    };
 
-return (
-    <ContractContext.Provider
-        value={{
-            currentStep,
-            inmueble,
-            contrato,
-            compradores,
-            vendedores,
-            contratoId,
-            setCurrentStep,
-            updateInmueble,
-            updateContrato,
-            addComprador,
-            addVendedor,
-            removeComprador,
-            removeVendedor,
-            submitContract,
-            reset,
-        }}
-    >
-        {children}
-    </ContractContext.Provider>
-);
+    return (
+        <ContractContext.Provider
+            value={{
+                currentStep,
+                inmueble,
+                contrato,
+                compradores,
+                vendedores,
+                contratoId,
+                setCurrentStep,
+                updateInmueble,
+                updateContrato,
+                addComprador,
+                addVendedor,
+                removeComprador,
+                removeVendedor,
+                submitContract,
+                reset,
+            }}
+        >
+            {children}
+        </ContractContext.Provider>
+    );
 };
