@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useContract } from '../../context/ContractContext';
+import { isTerritorioForal, getForalRegion, getForalRegionDisplayName, getForalImplications } from '../../utils/foralTerritories';
 
 interface Anexo {
     id?: string;
@@ -15,7 +16,7 @@ interface Anexo {
 }
 
 export const Step1Inmueble: React.FC = () => {
-    const { inmueble, updateInmueble, setCurrentStep } = useContract();
+    const { inmueble, updateInmueble, setCurrentStep, contrato } = useContract();
 
     const [formData, setFormData] = useState({
         // Ubicación básica
@@ -203,6 +204,38 @@ export const Step1Inmueble: React.FC = () => {
                             <small>Para referencia informal.</small>
                         </div>
                     </div>
+
+                    {/* FORAL TERRITORY ALERT */}
+                    {contrato.modoEstandarObservatorio && formData.provincia && isTerritorioForal(formData.provincia) && (
+                        <div className="foral-alert">
+                            <div className="foral-alert-header">
+                                <span className="foral-alert-icon">⚠️</span>
+                                <h4>Territorio Foral Detectado</h4>
+                            </div>
+                            <div className="foral-alert-content">
+                                <p className="foral-region">
+                                    <strong>Región:</strong> {getForalRegionDisplayName(getForalRegion(formData.provincia)!)}
+                                </p>
+                                <p className="foral-implication">
+                                    {getForalImplications(getForalRegion(formData.provincia)!)}
+                                </p>
+                                <div className="foral-alert-notice">
+                                    <p>
+                                        ℹ️ El <strong>Modelo Estándar del Observatorio Legaltech</strong> está diseñado para el derecho civil  común.
+                                        En territorios con derecho foral, se recomienda revisión profesional para adaptar ciertas cláusulas.
+                                    </p>
+                                </div>
+                                <div className="foral-alert-actions">
+                                    <p><strong>Opciones:</strong></p>
+                                    <ul>
+                                        <li>✅ <strong>Continuar con el modelo estándar</strong> (válido como base, requiere revisión profesional posterior)</li>
+                                        <li>🔄 <strong>Desactivar Modo Estándar</strong> y personalizar completamente (vuelve al Step 2)</li>
+                                        <li>👨‍⚖️ <strong>Solicitar revisión profesional</strong> de las cláusulas afectadas antes de continuar</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* 2. DATOS CATASTRALES */}
                     <div className="form-section">

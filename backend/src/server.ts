@@ -10,6 +10,8 @@ import pdfRoutes from './routes/pdf.js';
 import pagosRoutes from './routes/pagos.js';
 import actasRoutes from './routes/actas.js';
 import notariaRoutes from './routes/notaria.js';
+import contractsRoutes from './routes/contracts.js';
+import storageRoutes from './routes/storage.js';
 
 const app = express();
 
@@ -37,6 +39,8 @@ app.get('/', (_req: Request, res: Response) => {
             aceptaciones: '/api/aceptaciones',
             firmas: '/api/firmas',
             pdf: '/api/pdf',
+            '🆕 contracts': '/api/contracts',
+            '🆕 storage': '/api/storage',
         },
         documentation: 'Ver /docs/API.md',
     });
@@ -60,6 +64,8 @@ app.use('/api/pdf', pdfRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/actas', actasRoutes);
 app.use('/api/notaria', notariaRoutes);
+app.use('/api/contracts', contractsRoutes);
+app.use('/api/storage', storageRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

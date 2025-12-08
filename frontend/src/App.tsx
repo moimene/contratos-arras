@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ContractProvider, useContract } from './context/ContractContext';
 import { Stepper } from './components/Stepper';
 import { Step1Inmueble } from './components/steps/Step1Inmueble';
@@ -7,7 +8,8 @@ import { Step3Partes } from './components/steps/Step3Partes';
 import { Step4Resumen } from './components/steps/Step4Resumen';
 import { Step5Borrador } from './components/steps/Step5Borrador';
 import { Step6Firma } from './components/steps/Step6Firma';
-import { Step7Documentos, Step8Minuta, Step9Incidencias, Step10Certificado } from './components/steps/StepsPlaceholder';
+import ContratoDashboard from './pages/Dashboard/ContratoDashboard';
+import ExpedientesList from './pages/ExpedientesList/ExpedientesList';
 import './index.css';
 
 const StepRouter: React.FC = () => {
@@ -26,41 +28,54 @@ const StepRouter: React.FC = () => {
       return <Step5Borrador />;
     case 6:
       return <Step6Firma />;
-    case 7:
-      return <Step7Documentos />;
-    case 8:
-      return <Step8Minuta />;
-    case 9:
-      return <Step9Incidencias />;
-    case 10:
-      return <Step10Certificado />;
     default:
-      return <div className="step-container"><h2>Paso {currentStep}: En construcción...</h2></div>;
+      return <Step1Inmueble />;
   }
 };
 
-function AppContent() {
+const WizardPage: React.FC = () => {
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1 className="app-title">📝 Sistema de Contratos de Arras</h1>
-        <p className="app-subtitle">
-          Gestión integral de contratos de arras con firma electrónica y certificación legal
-        </p>
-      </header>
+    <div className="wizard-container">
+      <div className="wizard-header">
+        <div className="logo-section">
+          <h1 className="brand-title">⚖️ Observatorio Legaltech</h1>
+          <p className="brand-subtitle">Plataforma de Contratos de Arras Digitales</p>
+        </div>
+      </div>
 
-      <Stepper />
+      <div className="wizard-content">
+        <Stepper />
+        <div className="step-content-wrapper">
+          <StepRouter />
+        </div>
+      </div>
 
-      <StepRouter />
+      <footer className="wizard-footer">
+        <p>© 2025 Observatorio Legaltech | Powered by ICADE Business School</p>
+      </footer>
     </div>
   );
-}
+};
 
 function App() {
   return (
-    <ContractProvider>
-      <AppContent />
-    </ContractProvider>
+    <BrowserRouter>
+      <ContractProvider>
+        <Routes>
+          {/* Home - Lista de Expedientes */}
+          <Route path="/" element={<ExpedientesList />} />
+
+          {/* Wizard - Nuevo Expediente */}
+          <Route path="/wizard/nuevo" element={<WizardPage />} />
+
+          {/* Dashboard - Gestión de Expediente */}
+          <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
+
+          {/* Redirect de rutas desconocidas */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ContractProvider>
+    </BrowserRouter>
   );
 }
 

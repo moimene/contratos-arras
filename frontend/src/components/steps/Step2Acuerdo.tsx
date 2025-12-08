@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useContract } from '../../context/ContractContext';
+import { validateModoEstandar, getModoEstandarBlockReason } from '../../context/ContractContext';
 
 export const Step2Acuerdo: React.FC = () => {
-    const { contrato, updateContrato, setCurrentStep } = useContract();
+    const {
+        contrato,
+        inmueble,
+        updateContrato,
+        setCurrentStep,
+        activarModoEstandar,
+        desactivarModoEstandar
+    } = useContract();
 
     const [formData, setFormData] = useState({
         // 1. Tipo de arras
@@ -43,6 +51,11 @@ export const Step2Acuerdo: React.FC = () => {
     const [porcentajeArras, setPorcentajeArras] = useState(0);
     const [warnings, setWarnings] = useState<string[]>([]);
 
+    // Estado para el modo estándar
+    const [showModoEstandarModal, setShowModoEstandarModal] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: '', message: '', actionLabel: '' });
+    const [pendingChange, setPendingChange] = useState<{ field: string, value: any } | null>(null);
+
     // Calcular porcentaje de arras automáticamente
     useEffect(() => {
         if (formData.precio_total > 0 && formData.importe_arras >= 0) {
@@ -61,14 +74,78 @@ export const Step2Acuerdo: React.FC = () => {
         }
     }, [formData.precio_total, formData.importe_arras]);
 
+    // Toggle del modo estándar
+    const handleToggleModoEstandar = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const isActivating = e.target.checked;
+
+        if (isActivating) {
+            // Activar modo estándar
+            activarModoEstandar();
+            // Actualizar formData con valores por defecto
+            setFormData(prev => ({
+                ...prev,
+                tipo_arras: 'PENITENCIALES',
+                forma_pago_arras: 'AL_FIRMAR',
+                gastos_quien: 'LEY',
+                via_resolucion: 'JUZGADOS',
+                firma_preferida: 'ELECTRONICA'
+            }));
+        } else {
+            // Desactivar modo estándar
+            desactivarModoEstandar('Usuario desactivó manualmente el modo estándar');
+        }
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+
+        // GUARDAS DEL MODO ESTÁNDAR
+        if (contrato.modoEstandarObservatorio) {
+            // Detectar cambio a arras no penitenciales
+            if (name === 'tipo_arras' && value !== 'PENITENCIALES') {
+                setModalContent({
+                    title: '⚠️ Cambio incompatible con el Modo Estándar',
+                    message: `El cambio a arras ${value === 'CONFIRMATORIAS' ? 'confirmatorias' : 'penales'} no es compatible con el Modelo Estándar del Observatorio, que solo admite arras penitenciales. ¿Deseas desactivar el modo estándar y continuar con un modelo personalizado?`,
+                    actionLabel: 'Sí, usar modelo personalizado'
+                });
+                setPendingChange({ field: name, value });
+                setShowModoEstandarModal(true);
+                return; // No aplicar el cambio todavía
+            }
+
+            // Otras guardas se añadirán según se implementen campos
+            // (ej. con hipoteca, con arrendatarios, etc.)
+        }
+
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'number' ? Number(value) :
                 type === 'checkbox' ? (e.target as HTMLInputElement).checked :
                     value,
         }));
+    };
+
+    // Confirmar salida del modo estándar
+    const confirmarSalirModoEstandar = () => {
+        if (pendingChange) {
+            // Desactivar modo estándar
+            desactivarModoEstandar(`Cambio a ${pendingChange.field} = ${pendingChange.value}`);
+
+            // Aplicar el cambio pendiente
+            setFormData(prev => ({
+                ...prev,
+                [pendingChange.field]: pendingChange.value
+            }));
+
+            setPendingChange(null);
+        }
+        setShowModoEstandarModal(false);
+    };
+
+    // Cancelar cambio y mantener modo estándar
+    const cancelarCambio = () => {
+        setPendingChange(null);
+        setShowModoEstandarModal(false);
     };
 
     const getTipoArrasExplicacion = () => {
@@ -133,6 +210,44 @@ export const Step2Acuerdo: React.FC = () => {
     return (
         <div className="step-2-container">
             <div className="step-2-main">
+                {/* MODO ESTÁNDAR OBSERVATORIO TOGGLE */}
+                <div className="modo-estandar-section">
+                    <label className="modo-estandar-toggle">
+                        <input
+                            type="checkbox"
+                            checked={contrato.modoEstandarObservatorio || false}
+                            onChange={handleToggleModoEstandar}
+                        />
+                        <span className="toggle-label">
+                            <strong>✓ Usar condiciones estándar del Observatorio Legaltech Garrigues-ICADE</strong>
+                        </span>
+                    </label>
+
+                    {contrato.modoEstandarObservatorio && (
+                        <div className="modo-estandar-aviso">
+                            <p>ℹ️ <strong>Modo Estándar Activo:</strong> Este contrato se genera conforme al modelo del Observatorio para vivienda en España (derecho civil común), sin hipoteca ni arrendatarios, con arras penitenciales.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* MODAL DE CONFIRMACIÓN PARA SALIR DEL MODO ESTÁNDAR */}
+                {showModoEstandarModal && (
+                    <div className="modal-overlay" onClick={cancelarCambio}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <h3>{modalContent.title}</h3>
+                            <p>{modalContent.message}</p>
+                            <div className="modal-actions">
+                                <button onClick={confirmarSalirModoEstandar} className="btn btn-primary">
+                                    {modalContent.actionLabel}
+                                </button>
+                                <button onClick={cancelarCambio} className="btn btn-secondary">
+                                    No, mantener modo estándar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="banner-warning">
                     <strong>⚠️ Esta herramienta NO es asesoramiento jurídico.</strong> Revisa el contenido con un profesional antes de firmar.
                 </div>

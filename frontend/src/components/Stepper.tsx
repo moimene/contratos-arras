@@ -14,28 +14,41 @@ const steps: Step[] = [
     { number: 4, title: 'Resumen', description: 'Aceptación de términos' },
     { number: 5, title: 'Borrador', description: 'Generar PDF' },
     { number: 6, title: 'Firma', description: 'Firma electrónica' },
-    { number: 7, title: 'Documentos', description: 'Notaría' },
-    { number: 8, title: 'Minuta', description: 'Escritura' },
-    { number: 9, title: 'Incidencias', description: 'Pagos y comparecencia' },
-    { number: 10, title: 'Certificado', description: 'Conformidad final' },
 ];
 
 export const Stepper: React.FC = () => {
-    const { currentStep } = useContract();
+    const { currentStep, setCurrentStep, contrato } = useContract();
+
+    const handleStepClick = (stepNumber: number) => {
+        // Allow navigation to any step for development/testing
+        // In production, you might want to restrict to completed steps only
+        setCurrentStep(stepNumber);
+    };
 
     return (
         <div className="stepper">
+            <div className="stepper-header">
+                <h2>Proceso de Generación del Contrato de Arras</h2>
+                {contrato.modoEstandarObservatorio && (
+                    <div className="badge-modo-estandar">
+                        <span className="badge-icon">✓</span>
+                        <span>Modo Estándar Observatorio Legaltech</span>
+                    </div>
+                )}
+            </div>
             <div className="stepper-container">
                 {steps.map((step, index) => (
                     <div key={step.number} className="stepper-step">
                         <div className="stepper-step-content">
                             <div
                                 className={`stepper-circle ${currentStep === step.number
-                                        ? 'active'
-                                        : currentStep > step.number
-                                            ? 'completed'
-                                            : 'pending'
+                                    ? 'active'
+                                    : currentStep > step.number
+                                        ? 'completed'
+                                        : 'pending'
                                     }`}
+                                onClick={() => handleStepClick(step.number)}
+                                style={{ cursor: 'pointer' }}
                             >
                                 {currentStep > step.number ? (
                                     <svg

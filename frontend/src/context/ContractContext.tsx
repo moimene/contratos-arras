@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import { isTerritorioForal, getForalRegion, getForalRegionDisplayName, getForalImplications } from '../utils/foralTerritories';
 
 // Tipos
 interface Inmueble {
@@ -50,6 +51,32 @@ interface Inmueble {
     }>;
 }
 
+// Configuración del Modo Estándar Observatorio
+interface ConfiguracionEstandar {
+    // Valores fijados por el modo estándar (no editables)
+    ambito: {
+        objeto: 'VIVIENDA';
+        derecho: 'COMUN';
+        sinHipoteca: true;
+        sinArrendatarios: true;
+    };
+    arras: {
+        naturaleza: 'PENITENCIALES';
+    };
+
+    // Valores por defecto (editables dentro del estándar)
+    portadaDefaults: {
+        formaPagoArras: 'AL_FIRMAR' | 'POSTERIOR';
+        gastosQuien: 'LEY' | 'COMPRADOR';
+        viaResolucion: 'JUZGADOS' | 'ARBITRAJE';
+        firma: 'ELECTRONICA' | 'MANUSCRITA';
+        anexos: string[];
+    };
+
+    // Campos que SÍ se pueden editar
+    editables: string[];
+}
+
 interface Contrato {
     tipo_arras: 'CONFIRMATORIAS' | 'PENITENCIALES' | 'PENALES';
     precio_total: number;
@@ -76,6 +103,11 @@ interface Contrato {
     manifestacion_libre_cargas?: boolean;
     manifestacion_corriente_pagos?: boolean;
     manifestacion_certificaciones?: boolean;
+
+    // Modo Estándar Observatorio
+    modoEstandarObservatorio?: boolean;
+    configuracionEstandar?: ConfiguracionEstandar;
+    otrosCambiosTerminos?: string;
 }
 
 interface Parte {
@@ -101,6 +133,7 @@ interface ContractContextType {
 
     // Acciones
     setCurrentStep: (step: number) => void;
+    setContratoId: (id: string) => void;
     updateInmueble: (data: Partial<Inmueble>) => void;
     updateContrato: (data: Partial<Contrato>) => void;
     addComprador: (parte: Parte) => void;
@@ -109,6 +142,10 @@ interface ContractContextType {
     removeVendedor: (index: number) => void;
     submitContract: () => Promise<void>;
     reset: () => void;
+
+    // Modo Estándar Observatorio
+    activarModoEstandar: () => void;
+    desactivarModoEstandar: (razon?: string) => void;
 }
 
 const ContractContext = createContext<ContractContextType | undefined>(undefined);
@@ -239,6 +276,37 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
         setContratoId(undefined);
     };
 
+    // ============================================
+    // MODO ESTÁNDAR OBSERVATORIO - MÉTODOS
+    // ============================================
+
+    const activarModoEstandar = () => {
+        setContrato((prev) => ({
+            ...prev,
+            modoEstandarObservatorio: true,
+            configuracionEstandar: DEFAULT_CONFIG_ESTANDAR,
+            // Aplicar defaults de la configuración estándar
+            tipo_arras: 'PENITENCIALES',
+            forma_pago_arras: 'AL_FIRMAR',
+            gastos_quien: 'LEY',
+            via_resolucion: 'JUZGADOS',
+            firma_preferida: 'ELECTRONICA'
+        }));
+    };
+
+    const desactivarModoEstandar = (razon?: string) => {
+        if (razon) {
+            console.log(`Modo estándar desactivado: ${razon}`);
+        }
+
+        setContrato((prev) => ({
+            ...prev,
+            modoEstandarObservatorio: false,
+            configuracionEstandar: undefined,
+            otrosCambiosTerminos: undefined
+        }));
+    };
+
     return (
         <ContractContext.Provider
             value={{
@@ -249,6 +317,7 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
                 vendedores,
                 contratoId,
                 setCurrentStep,
+                setContratoId,
                 updateInmueble,
                 updateContrato,
                 addComprador,
@@ -257,9 +326,106 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
                 removeVendedor,
                 submitContract,
                 reset,
+                activarModoEstandar,
+                desactivarModoEstandar,
             }}
         >
             {children}
         </ContractContext.Provider>
     );
+};
+
+// ============================================
+// MODO ESTÁNDAR OBSERVATORIO - CONFIGURACIÓN
+// ============================================
+
+export const DEFAULT_CONFIG_ESTANDAR: ConfiguracionEstandar = {
+    ambito: {
+        objeto: 'VIVIENDA',
+        derecho: 'COMUN',
+        sinHipoteca: true,
+        sinArrendatarios: true
+    },
+    arras: {
+        naturaleza: 'PENITENCIALES'
+    },
+    portadaDefaults: {
+        formaPagoArras: 'AL_FIRMAR',
+        gastosQuien: 'LEY',
+        viaResolucion: 'JUZGADOS',
+        firma: 'ELECTRONICA',
+        anexos: [
+            'NOTA_SIMPLE',
+            'IBI',
+            'JUSTIFICANTE_ARRAS',
+            'CERTIFICACION_ENERGETICA'
+        ]
+    },
+    editables: [
+        'precio_total',
+        'importe_arras',
+        'forma_pago_arras',
+        'plazo_pago_arras_dias',
+        'fecha_limite_pago_arras',
+        'iban_vendedor',
+        'banco_vendedor',
+        'fecha_limite_firma_escritura',
+        'notario_designado_nombre',
+        'notario_designado_direccion',
+        'gastos_quien',
+        'via_resolucion',
+        'firma_preferida',
+        'otrosCambiosTerminos'
+    ]
+};
+
+/**
+ * Valida si el contrato cumple las condiciones del Modo Estándar Observatorio
+ */
+export const validateModoEstandar = (
+    contrato: Partial<Contrato>,
+    inmueble: Partial<Inmueble>
+): { isValid: boolean; violations: string[]; warnings: string[] } => {
+    const violations: string[] = [];
+    const warnings: string[] = [];
+
+    // Validar tipo de arras
+    if (contrato.tipo_arras !== 'PENITENCIALES') {
+        violations.push('El modo estándar requiere arras penitenciales');
+    }
+
+    // Validar territorio foral
+    if (inmueble.provincia && isTerritorioForal(inmueble.provincia)) {
+        const region = getForalRegion(inmueble.provincia);
+        const regionName = region ? getForalRegionDisplayName(region) : inmueble.provincia;
+        const implication = region ? getForalImplications(region) : 'El territorio tiene derecho civil especial.';
+
+        warnings.push(
+            `⚠️ ATENCIÓN: Territorio Foral detectado (${regionName}). ${implication} Se recomienda revisión profesional antes de proceder con el modelo estándar.`
+        );
+    }
+
+    // Nota: Las validaciones de hipoteca/arrendatarios se harían en Step 1 cuando esos campos se implementen
+
+    return {
+        isValid: violations.length === 0,
+        violations,
+        warnings
+    };
+};
+
+/**
+ * Obtiene la razón por la cual el modo estándar no puede activarse
+ */
+export const getModoEstandarBlockReason = (
+    contrato: Partial<Contrato>
+): string | null => {
+    if (contrato.tipo_arras === 'CONFIRMATORIAS') {
+        return 'Las arras confirmatorias no son compatibles con el modo estándar';
+    }
+    if (contrato.tipo_arras === 'PENALES') {
+        return 'Las arras penales no son compatibles con el modo estándar';
+    }
+    // Otras validaciones se añadirán según se implementen los campos
+    return null;
 };

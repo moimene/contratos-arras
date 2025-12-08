@@ -97,7 +97,10 @@ export const Step4Resumen: React.FC = () => {
 
     const allPartiesAccepted = () => {
         const obligated = getObligatedParties();
-        return obligated.every(p => acceptances[p.id || p.nombre]);
+        return obligated.every(p => {
+            const parteId = p.id || `${p.nombre}-${p.apellidos}`;
+            return acceptances[parteId];
+        });
     };
 
     const formatCurrency = (amount: number) => {
@@ -425,6 +428,30 @@ export const Step4Resumen: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* STANDARD MODE CONFORMITY CERTIFICATION */}
+                    {contrato.modoEstandarObservatorio && (
+                        <div className="conformity-panel">
+                            <div className="conformity-header">
+                                <span className="conformity-icon">✓</span>
+                                <h3>Certificación de Conformidad Observatorio Legaltech</h3>
+                            </div>
+                            <div className="conformity-content">
+                                <p>
+                                    <strong>✅ Este contrato cumple con el modelo estándar del Observatorio Legaltech Garrigues-ICADE</strong>
+                                </p>
+                                <ul className="conformity-checklist">
+                                    <li>✓ Ámbito: Vivienda en España (derecho civil común)</li>
+                                    <li>✓ Arras: Penitenciales (desistimiento libre con penalización)</li>
+                                    <li>✓ Sin hipoteca pendiente ni arrendatarios</li>
+                                    <li>✓ Términos redactados conforme al modelo Legaltech revisado</li>
+                                </ul>
+                                <p className="conformity-note">
+                                    ℹ️ Esta marca indica que el contrato sigue el estándar del Observatorio y facilita su validación por profesionales que conozcan el modelo.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* NARRATIVE SUMMARY */}
                     <div className="narrative-summary">
                         <h3>📄 Resumen Narrativo</h3>
@@ -522,7 +549,7 @@ export const Step4Resumen: React.FC = () => {
                             className="btn btn-primary"
                             disabled={!allPartiesAccepted()}
                         >
-                            Continuar → Crear contrato
+                            Crear Borrador Contrato →
                         </button>
                     </div>
                 </form>
