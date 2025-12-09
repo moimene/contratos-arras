@@ -10,6 +10,7 @@ import StateAlert from '../../components/StateAlert/StateAlert';
 import GestorComunicaciones from '../../components/GestorComunicaciones/GestorComunicaciones';
 import CertificadoEventos from '../../components/CertificadoEventos/CertificadoEventos';
 import ChecklistNotaria from '../../components/notaria/ChecklistNotaria';
+import { FirmaElectronica } from '../../components/firma/FirmaElectronica';
 import { EidasBadge } from '../../components/branding/TrustBadges';
 
 interface ContratoData {
@@ -215,6 +216,15 @@ export default function ContratoDashboard({
                         estado={contrato.estado}
                         firmasCompletas={contrato.estado === 'FIRMADO' || contrato.estado === 'CONVOCATORIA_NOTARIAL'}
                     />
+
+                    {/* Panel de Firma Electrónica - Visible en BORRADOR e INICIADO */}
+                    {['INICIADO', 'BORRADOR'].includes(contrato.estado) && (
+                        <FirmaElectronica
+                            contratoId={contrato.id}
+                            onFirmaCompletada={fetchContratoData}
+                            onTodasFirmasCompletas={fetchContratoData}
+                        />
+                    )}
 
                     {/* Checklist Notaría - Visible en fase NOTARIA o posterior */}
                     {['FIRMADO', 'CONVOCATORIA_NOTARIAL', 'NOTARIA', 'ESCRITURA_OTORGADA', 'NO_COMPARECENCIA'].includes(contrato.estado) && (
