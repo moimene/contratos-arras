@@ -12,6 +12,7 @@ import { Step5Borrador } from './components/steps/Step5Borrador';
 import { Step6Firma } from './components/steps/Step6Firma';
 import ContratoDashboard from './pages/Dashboard/ContratoDashboard';
 import ExpedientesList from './pages/ExpedientesList/ExpedientesList';
+import { TrustBadges, EidasBadge } from './components/branding/TrustBadges';
 import './index.css';
 
 const StepRouter: React.FC = () => {
@@ -68,8 +69,13 @@ const WizardPage: React.FC = () => {
     <div className="wizard-container">
       <div className="wizard-header">
         <div className="logo-section">
-          <h1 className="brand-title">⚖️ Observatorio Legaltech</h1>
-          <p className="brand-subtitle">Plataforma de Contratos de Arras Digitales</p>
+          <div className="brand-main">
+            <EidasBadge size="medium" />
+            <div className="brand-text">
+              <h1 className="brand-title">Gestor de Expedientes de Arras</h1>
+              <p className="brand-subtitle">Estándar Garrigues-ICADE | Foro KTECH</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -81,7 +87,7 @@ const WizardPage: React.FC = () => {
       </div>
 
       <footer className="wizard-footer">
-        <p>© 2025 Observatorio Legaltech | Powered by ICADE Business School</p>
+        <TrustBadges variant="footer" />
       </footer>
     </div>
   );

@@ -10,6 +10,7 @@ import { supabase } from '../../config/supabase';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { TrustBadges } from '../../components/branding/TrustBadges';
 
 export default function LoginPage() {
     const { session, loading } = useAuth();
@@ -87,8 +88,11 @@ export default function LoginPage() {
         <div className="auth-page">
             <div className="auth-container">
                 <div className="auth-header">
-                    <h1>🔐 Chrono-Flare</h1>
-                    <p className="auth-subtitle">Plataforma de Gestión de Contratos de Arras</p>
+                    <div className="auth-logo-row">
+                        <img src="/g-digital-logo.png" alt="g-digital" className="auth-logo-gdigital" />
+                    </div>
+                    <h1>Gestor de Expedientes de Arras</h1>
+                    <p className="auth-subtitle">Estándar Garrigues-ICADE | Operado por EAD Trust</p>
                 </div>
 
                 <div className="auth-form-container">
@@ -143,6 +147,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="auth-footer">
+                    <TrustBadges variant="compact" />
                     <p className="auth-disclaimer">
                         Al continuar, aceptas nuestros{' '}
                         <a href="/terminos" target="_blank">Términos de Servicio</a>

@@ -1,0 +1,174 @@
+/* =====================================================
+   TRUST BADGES - Branding Components
+   ===================================================== */
+
+.trust-badges {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Full Variant */
+.trust-badges-full {
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.trust-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.trust-creator,
+.trust-operator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.trust-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.logo-g-digital {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
+.logo-ead-trust {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+}
+
+.trust-divider {
+    width: 1px;
+    height: 50px;
+    background: #cbd5e1;
+}
+
+.trust-eidas-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.eidas-badge {
+    height: 48px;
+    width: auto;
+}
+
+.eidas-text {
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+/* Compact Variant */
+.trust-badges-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(37, 99, 235, 0.08);
+    border-radius: 20px;
+    border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+.eidas-badge-small {
+    height: 24px;
+    width: auto;
+}
+
+.trust-text-compact {
+    font-size: 0.75rem;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+/* Footer Variant */
+.trust-badges-footer {
+    padding: 1rem 0;
+}
+
+.trust-footer-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.trust-badges-footer .trust-creator,
+.trust-badges-footer .trust-operator {
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.trust-badges-footer .trust-label {
+    font-size: 0.7rem;
+}
+
+.trust-badges-footer .logo-g-digital {
+    height: 28px;
+}
+
+.trust-badges-footer .logo-ead-trust {
+    height: 24px;
+}
+
+.eidas-badge-footer {
+    height: 32px;
+    width: auto;
+}
+
+/* Badge Sizes */
+.eidas-badge-small {
+    height: 24px;
+}
+
+.eidas-badge-medium {
+    height: 36px;
+}
+
+.eidas-badge-large {
+    height: 48px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .trust-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .trust-divider {
+        width: 60px;
+        height: 1px;
+    }
+
+    .trust-footer-logos {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .trust-badges-footer .trust-creator,
+    .trust-badges-footer .trust-operator {
+        flex-direction: column;
+    }
+}

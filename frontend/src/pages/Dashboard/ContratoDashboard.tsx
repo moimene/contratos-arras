@@ -10,6 +10,7 @@ import StateAlert from '../../components/StateAlert/StateAlert';
 import GestorComunicaciones from '../../components/GestorComunicaciones/GestorComunicaciones';
 import CertificadoEventos from '../../components/CertificadoEventos/CertificadoEventos';
 import ChecklistNotaria from '../../components/notaria/ChecklistNotaria';
+import { EidasBadge } from '../../components/branding/TrustBadges';
 
 interface ContratoData {
     id: string;
@@ -181,6 +182,7 @@ export default function ContratoDashboard({
             <header className="dashboard-header">
                 <div className="header-content">
                     <div className="header-title">
+                        <EidasBadge size="small" />
                         <h1>Expediente {contrato.numero_expediente}</h1>
                         <EstadoBadge estado={contrato.estado} />
                     </div>

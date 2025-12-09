@@ -350,10 +350,12 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
             )}
 
             <div className="firma-footer-info">
-                <div className="info-icon">ℹ️</div>
+                <div className="info-icon">
+                    <img src="/eidas-badge.png" alt="eIDAS" style={{ height: '24px' }} />
+                </div>
                 <div className="info-content">
-                    <strong>Firma Electrónica Simple:</strong> Esta firma tiene validez probatoria según el artículo 3.4 del Reglamento eIDAS.
-                    Se registran evidencias técnicas (IP, timestamp, hash del documento) y sellos de tiempo cualificados.
+                    <strong>Firma Electrónica gestionada por EAD Trust (QTSP):</strong> Sellos de tiempo cualificados
+                    y evidencias técnicas según Reglamento UE 910/2014 (eIDAS).
                 </div>
             </div>
         </div>

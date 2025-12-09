@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { EidasBadge } from '../../components/branding/TrustBadges';
 import './ExpedientesList.css';
 
 interface Expediente {
@@ -105,7 +106,10 @@ export default function ExpedientesList() {
             <header className="expedientes-header">
                 <div className="header-content">
                     <div className="header-left">
-                        <h1>📋 Mis Expedientes de Arras</h1>
+                        <div className="header-title-row">
+                            <EidasBadge size="small" />
+                            <h1>Mis Expedientes de Arras</h1>
+                        </div>
                         <p className="subtitle">{expedientes.length} expediente{expedientes.length !== 1 ? 's' : ''} en total</p>
                     </div>
                     <div className="header-right">
