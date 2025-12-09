@@ -181,21 +181,21 @@ INSERT INTO inventario_expediente (contrato_id, tipo, titulo, grupo, responsable
 ('c0000025-0000-0000-0000-000000000025', 'ESCRITURA_COMPRAVENTA_FIRMADA', 'Escritura de compraventa', 'NOTARIA', 'NOTARIO', true, 'VALIDADO');
 
 -- EVENTOS (historial de algunos contratos)
-INSERT INTO eventos (id, contrato_id, tipo_evento, descripcion, datos_extra, created_at) VALUES
+INSERT INTO eventos (id, contrato_id, tipo, payload_json, hash_sha256, fecha_hora) VALUES
 -- Contrato 21
-(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'CONTRATO_CREADO', 'Contrato creado vía wizard', '{}', NOW() - INTERVAL '3 days'),
-(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'BORRADOR_GENERADO', 'PDF del contrato generado', '{}', NOW() - INTERVAL '2 days 20 hours'),
-(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'FIRMA_COMPLETADA', 'Todas las partes han firmado', '{}', NOW() - INTERVAL '2 days'),
-(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'CAMBIO_ESTADO', 'Estado cambiado a NOTARIA', '{"estado_anterior": "FIRMADO", "estado_nuevo": "NOTARIA"}', NOW() - INTERVAL '1 day'),
--- Contrato 24 (ESCRITURA_OTORGADA - completo)
-(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'CONTRATO_CREADO', 'Contrato creado vía wizard', '{}', NOW() - INTERVAL '20 days'),
-(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'FIRMA_COMPLETADA', 'Todas las partes han firmado', '{}', NOW() - INTERVAL '16 days'),
-(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'CAMBIO_ESTADO', 'Estado cambiado a NOTARIA', '{}', NOW() - INTERVAL '14 days'),
-(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'ESCRITURA_OTORGADA', 'Escritura pública firmada ante notario', '{"notario": "D. Antonio López Gil", "protocolo": "1234/2025"}', NOW() - INTERVAL '15 days'),
--- Contrato 28 (NO_COMPARECENCIA)
-(gen_random_uuid(), 'c0000028-0000-0000-0000-000000000028', 'CONTRATO_CREADO', 'Contrato creado', '{}', NOW() - INTERVAL '15 days'),
-(gen_random_uuid(), 'c0000028-0000-0000-0000-000000000028', 'FIRMA_COMPLETADA', 'Firmas completadas', '{}', NOW() - INTERVAL '11 days'),
-(gen_random_uuid(), 'c0000028-0000-0000-0000-000000000028', 'NO_COMPARECENCIA', 'Vendedor no compareció a la cita notarial', '{"parte_no_compareciente": "VENDEDOR"}', NOW() - INTERVAL '10 days');
+(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'CONTRATO_CREADO', '{"descripcion": "Contrato creado vía wizard"}', md5(random()::text), NOW() - INTERVAL '3 days'),
+(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'BORRADOR_GENERADO', '{"descripcion": "PDF del contrato generado"}', md5(random()::text), NOW() - INTERVAL '2 days 20 hours'),
+(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'FIRMA_COMPLETADA', '{"descripcion": "Todas las partes han firmado"}', md5(random()::text), NOW() - INTERVAL '2 days'),
+(gen_random_uuid(), 'c0000021-0000-0000-0000-000000000021', 'CAMBIO_ESTADO', '{"estado_anterior": "FIRMADO", "estado_nuevo": "NOTARIA"}', md5(random()::text), NOW() - INTERVAL '1 day'),
+-- Contrato 24 (TERMINADO)
+(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'CONTRATO_CREADO', '{"descripcion": "Contrato creado vía wizard"}', md5(random()::text), NOW() - INTERVAL '20 days'),
+(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'FIRMA_COMPLETADA', '{"descripcion": "Todas las partes han firmado"}', md5(random()::text), NOW() - INTERVAL '16 days'),
+(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'CAMBIO_ESTADO', '{"estado_anterior": "FIRMADO", "estado_nuevo": "NOTARIA"}', md5(random()::text), NOW() - INTERVAL '14 days'),
+(gen_random_uuid(), 'c0000024-0000-0000-0000-000000000024', 'ESCRITURA_OTORGADA', '{"notario": "D. Antonio López Gil", "protocolo": "1234/2025"}', md5(random()::text), NOW() - INTERVAL '15 days'),
+-- Contrato 28 (LITIGIO)
+(gen_random_uuid(), 'c0000028-0000-0000-0000-000000000028', 'CONTRATO_CREADO', '{"descripcion": "Contrato creado"}', md5(random()::text), NOW() - INTERVAL '15 days'),
+(gen_random_uuid(), 'c0000028-0000-0000-0000-000000000028', 'FIRMA_COMPLETADA', '{"descripcion": "Firmas completadas"}', md5(random()::text), NOW() - INTERVAL '11 days'),
+(gen_random_uuid(), 'c0000028-0000-0000-0000-000000000028', 'NO_COMPARECENCIA', '{"parte_no_compareciente": "VENDEDOR"}', md5(random()::text), NOW() - INTERVAL '10 days');
 
 COMMIT;
 
