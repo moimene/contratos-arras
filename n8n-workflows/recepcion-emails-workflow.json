@@ -1,0 +1,268 @@
+{
+    "name": "ChronoFlare - Recepción de Emails",
+    "nodes": [
+        {
+            "parameters": {
+                "host": "imap.gmail.com",
+                "port": 993,
+                "secure": true,
+                "mailbox": "INBOX",
+                "options": {
+                    "downloadAttachments": true,
+                    "forceReconnect": true
+                }
+            },
+            "id": "email-trigger",
+            "name": "Email Trigger",
+            "type": "n8n-nodes-base.emailReadImap",
+            "typeVersion": 2,
+            "position": [
+                0,
+                300
+            ],
+            "credentials": {
+                "imap": {
+                    "id": "YOUR_IMAP_CREDENTIAL_ID",
+                    "name": "IMAP Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "loose"
+                    },
+                    "conditions": [
+                        {
+                            "id": "expediente-check",
+                            "leftValue": "={{ $json.to?.text || $json.to }}",
+                            "rightValue": "expediente+",
+                            "operator": {
+                                "type": "string",
+                                "operation": "contains"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "filter-expediente",
+            "name": "¿Es para expediente?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                220,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Extraer número de expediente del email\nconst toField = $input.item.json.to?.text || $input.item.json.to || '';\nconst match = toField.match(/expediente\\+([A-Z]{3}-\\d{4}-\\d+)/i);\n\nif (!match) {\n  throw new Error('No se pudo extraer número de expediente del email');\n}\n\nreturn {\n  json: {\n    ...$input.item.json,\n    numeroExpediente: match[1],\n    parsedFrom: $input.item.json.from?.text || $input.item.json.from?.value?.[0]?.address,\n    parsedTo: toField\n  }\n};"
+            },
+            "id": "extract-expediente",
+            "name": "Extraer Expediente",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                440,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $env.CHRONOFLARE_API_URL }}/api/inbound/n8n/email-parsed",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "={{ $env.INBOUND_WEBHOOK_SECRET }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "numeroExpediente",
+                            "value": "={{ $json.numeroExpediente }}"
+                        },
+                        {
+                            "name": "from",
+                            "value": "={{ $json.parsedFrom }}"
+                        },
+                        {
+                            "name": "to",
+                            "value": "={{ $json.parsedTo }}"
+                        },
+                        {
+                            "name": "subject",
+                            "value": "={{ $json.subject }}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{ $json.text }}"
+                        },
+                        {
+                            "name": "html",
+                            "value": "={{ $json.html }}"
+                        },
+                        {
+                            "name": "messageId",
+                            "value": "={{ $json.messageId }}"
+                        },
+                        {
+                            "name": "date",
+                            "value": "={{ $json.date }}"
+                        },
+                        {
+                            "name": "attachments",
+                            "value": "={{ $json.attachments }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-to-platform",
+            "name": "Enviar a ChronoFlare",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                660,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "status",
+                            "value": "processed"
+                        },
+                        {
+                            "name": "expediente",
+                            "value": "={{ $json.numeroExpediente }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "Email certificado y registrado en la plataforma"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "success-response",
+            "name": "Éxito",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                880,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "status",
+                            "value": "skipped"
+                        },
+                        {
+                            "name": "reason",
+                            "value": "Email no dirigido a un expediente específico"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "skip-response",
+            "name": "Ignorado",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                440,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Email Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "¿Es para expediente?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "¿Es para expediente?": {
+            "main": [
+                [
+                    {
+                        "node": "Extraer Expediente",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Ignorado",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extraer Expediente": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar a ChronoFlare",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Enviar a ChronoFlare": {
+            "main": [
+                [
+                    {
+                        "node": "Éxito",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        {
+            "name": "ChronoFlare"
+        },
+        {
+            "name": "Inbound"
+        },
+        {
+            "name": "Email"
+        }
+    ],
+    "triggerCount": 1
+}

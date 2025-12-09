@@ -12,6 +12,16 @@ import actasRoutes from './routes/actas.js';
 import notariaRoutes from './routes/notaria.js';
 import contractsRoutes from './routes/contracts.js';
 import storageRoutes from './routes/storage.js';
+import claimRoutes from './routes/claim.js';
+import inventarioRoutes from './routes/inventario.js';
+import uploadRoutes from './routes/upload.js';
+import chatRoutes from './routes/chat.js';
+import transitionRoutes from './routes/transition.js';
+import documentManagerRoutes from './routes/documentManager.js';
+import communicationsRoutes from './routes/communications.js';
+import certificateRoutes from './routes/certificate.js';
+import notificationRoutes from './routes/notification.js';
+import inboundRoutes from './routes/inbound.js';
 
 const app = express();
 
@@ -30,7 +40,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.get('/', (_req: Request, res: Response) => {
     res.json({
         service: 'Sistema de Gestión de Contratos de Arras',
-        version: '1.0.0',
+        version: '2.0.0',
         status: 'running',
         endpoints: {
             health: '/api/health',
@@ -39,8 +49,10 @@ app.get('/', (_req: Request, res: Response) => {
             aceptaciones: '/api/aceptaciones',
             firmas: '/api/firmas',
             pdf: '/api/pdf',
-            '🆕 contracts': '/api/contracts',
-            '🆕 storage': '/api/storage',
+            contracts: '/api/contracts',
+            storage: '/api/storage',
+            '🆕 claim': '/api/claim',
+            '📋 inventario': '/api/contratos/:id/inventario',
         },
         documentation: 'Ver /docs/API.md',
     });
@@ -66,8 +78,17 @@ app.use('/api/actas', actasRoutes);
 app.use('/api/notaria', notariaRoutes);
 app.use('/api/contracts', contractsRoutes);
 app.use('/api/storage', storageRoutes);
+app.use('/api/claim', claimRoutes);
+app.use('/api/contratos', inventarioRoutes);  // Monta rutas de inventario bajo /api/contratos/:id/inventario
+app.use('/api/upload', uploadRoutes);  // Subida de archivos
+app.use('/api/contratos', chatRoutes);  // Chat del expediente
+app.use('/api/contratos', transitionRoutes);  // Transiciones de estado
+app.use('/api', documentManagerRoutes);  // Gestor Documental completo
+app.use('/api/contratos', communicationsRoutes);  // Gestor de Comunicaciones
+app.use('/api/contratos', certificateRoutes);  // Certificado de Eventos
+app.use('/api/notifications', notificationRoutes);  // Webhooks n8n salientes
+app.use('/api/inbound', inboundRoutes);  // Recepción de comunicaciones (emails, webhooks)
 
-// Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Error:', err);
     res.status(500).json({

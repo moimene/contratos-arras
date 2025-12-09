@@ -22,7 +22,7 @@ export async function generarNumeroExpediente(): Promise<string> {
     // Fallback: Generar localmente
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    return `CFA - ${ year } -${ random } `;
+    return `CFA - ${year} -${random} `;
 }
 
 /**
@@ -104,7 +104,7 @@ export async function crearContratoExpediente(
     const { data: inmuebleData, error: inmuebleError } = await supabase
         .from('inmuebles')
         .insert({
-            direccion_completa: `${ datosWizard.inmueble.calle } ${ datosWizard.inmueble.numero }, ${ datosWizard.inmueble.piso } `,
+            direccion_completa: `${datosWizard.inmueble.calle} ${datosWizard.inmueble.numero}, ${datosWizard.inmueble.piso} `,
             codigo_postal: datosWizard.inmueble.codigoPostal,
             ciudad: datosWizard.inmueble.ciudad,
             provincia: datosWizard.inmueble.provincia,
@@ -114,7 +114,7 @@ export async function crearContratoExpediente(
         .single();
 
     if (inmuebleError || !inmuebleData) {
-        throw new Error(`Error al crear inmueble: ${ inmuebleError?.message } `);
+        throw new Error(`Error al crear inmueble: ${inmuebleError?.message} `);
     }
 
     const inmuebleId = inmuebleData.id;
@@ -129,7 +129,7 @@ export async function crearContratoExpediente(
         .digest('hex');
 
     // 4. Crear contrato
-    const estadoInicial = borradorPdfPath ? 'BORRADOR_GENERADO' : 'BORRADOR';
+    const estadoInicial = borradorPdfPath ? 'BORRADOR' : 'INICIADO';
 
     // Calcular porcentaje si no viene en los datos
     const porcentajeArras = datosWizard.contrato.porcentaje_arras ||
@@ -159,7 +159,7 @@ export async function crearContratoExpediente(
         .single();
 
     if (contratoError || !contratoData) {
-        throw new Error(`Error al crear contrato: ${ contratoError?.message } `);
+        throw new Error(`Error al crear contrato: ${contratoError?.message} `);
     }
 
     const contratoId = contratoData.id;
@@ -183,7 +183,7 @@ export async function crearContratoExpediente(
         .select('id');
 
     if (vendedoresError || !vendedoresData) {
-        throw new Error(`Error al crear vendedores: ${ vendedoresError?.message } `);
+        throw new Error(`Error al crear vendedores: ${vendedoresError?.message} `);
     }
 
     // 6. Insertar compradores como partes
@@ -204,7 +204,7 @@ export async function crearContratoExpediente(
         .select('id');
 
     if (compradoresError || !compradoresData) {
-        throw new Error(`Error al crear compradores: ${ compradoresError?.message } `);
+        throw new Error(`Error al crear compradores: ${compradoresError?.message} `);
     }
 
     // 7. Crear relaciones contratos_partes
@@ -352,7 +352,7 @@ export async function obtenerContratoCompleto(contratoId: string) {
         .single();
 
     if (contratoError || !contrato) {
-        throw new Error(`Contrato no encontrado: ${ contratoError?.message } `);
+        throw new Error(`Contrato no encontrado: ${contratoError?.message} `);
     }
 
     // 2. Obtener partes del contrato

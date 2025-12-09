@@ -1,0 +1,269 @@
+{
+    "name": "ChronoFlare - Comunicaciones",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "comunicaciones",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook - Comunicaciones",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                0,
+                300
+            ],
+            "webhookId": "comunicaciones"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "email-condition",
+                            "leftValue": "={{ $json.notificarVia }}",
+                            "rightValue": "EMAIL",
+                            "operator": {
+                                "type": "array",
+                                "operation": "contains"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "check-email",
+            "name": "¿Enviar Email?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                220,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "whatsapp-condition",
+                            "leftValue": "={{ $json.notificarVia }}",
+                            "rightValue": "WHATSAPP",
+                            "operator": {
+                                "type": "array",
+                                "operation": "contains"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "check-whatsapp",
+            "name": "¿Enviar WhatsApp?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                220,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "toEmail": "={{ $json.comunicacion.destinatarios[0].email }}",
+                "subject": "={{ $json.comunicacion.asunto || 'Nueva comunicación - ' + $json.contrato.numeroExpediente }}",
+                "emailType": "html",
+                "message": "=<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #4299e1, #3182ce); color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background: #f7fafc; padding: 20px; border: 1px solid #e2e8f0; }\n    .footer { background: #2d3748; color: #a0aec0; padding: 15px; font-size: 12px; border-radius: 0 0 8px 8px; }\n    .badge { display: inline-block; padding: 4px 12px; background: #4299e1; color: white; border-radius: 20px; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h2>📨 Nueva Comunicación</h2>\n      <p>Expediente: {{ $json.contrato.numeroExpediente }}</p>\n    </div>\n    <div class=\"content\">\n      <p><strong>Tipo:</strong> <span class=\"badge\">{{ $json.comunicacion.tipo }}</span></p>\n      <p><strong>De:</strong> {{ $json.comunicacion.remitenteRol }}</p>\n      <p><strong>Asunto:</strong> {{ $json.comunicacion.asunto }}</p>\n      <hr>\n      <div>{{ $json.comunicacion.contenido }}</div>\n    </div>\n    <div class=\"footer\">\n      <p>Este mensaje ha sido enviado automáticamente desde ChronoFlare.</p>\n      <p>Fecha: {{ $json.timestamp }}</p>\n    </div>\n  </div>\n</body>\n</html>",
+                "options": {}
+            },
+            "id": "send-email",
+            "name": "Enviar Email",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                460,
+                200
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "YOUR_SMTP_CREDENTIAL_ID",
+                    "name": "SMTP Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "sendMessage",
+                "from": "={{ $env.TWILIO_WHATSAPP_FROM }}",
+                "to": "=whatsapp:{{ $json.comunicacion.destinatarios[0].telefono }}",
+                "message": "=📨 *Nueva Comunicación*\n\n*Expediente:* {{ $json.contrato.numeroExpediente }}\n*Tipo:* {{ $json.comunicacion.tipo }}\n*De:* {{ $json.comunicacion.remitenteRol }}\n\n{{ $json.comunicacion.asunto }}\n\n---\n{{ $json.comunicacion.contenido.substring(0, 500) }}{{ $json.comunicacion.contenido.length > 500 ? '...' : '' }}\n\n_Enviado desde ChronoFlare_"
+            },
+            "id": "send-whatsapp",
+            "name": "Enviar WhatsApp",
+            "type": "n8n-nodes-base.twilio",
+            "typeVersion": 1,
+            "position": [
+                460,
+                400
+            ],
+            "credentials": {
+                "twilioApi": {
+                    "id": "YOUR_TWILIO_CREDENTIAL_ID",
+                    "name": "Twilio Account"
+                }
+            }
+        },
+        {
+            "parameters": {},
+            "id": "merge-results",
+            "name": "Merge",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2.1,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "status",
+                            "value": "success"
+                        },
+                        {
+                            "name": "message",
+                            "value": "Notificaciones procesadas"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "response",
+            "name": "Respuesta",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Comunicaciones": {
+            "main": [
+                [
+                    {
+                        "node": "¿Enviar Email?",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "¿Enviar WhatsApp?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "¿Enviar Email?": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "¿Enviar WhatsApp?": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar WhatsApp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Enviar Email": {
+            "main": [
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Enviar WhatsApp": {
+            "main": [
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Merge": {
+            "main": [
+                [
+                    {
+                        "node": "Respuesta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        {
+            "name": "ChronoFlare"
+        },
+        {
+            "name": "Comunicaciones"
+        }
+    ],
+    "triggerCount": 1
+}

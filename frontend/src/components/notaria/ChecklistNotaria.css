@@ -1,0 +1,303 @@
+/* ChecklistNotaria.css */
+
+.checklist-notaria {
+    background: var(--card-bg, #fff);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.checklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.checklist-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary, #1a1a2e);
+}
+
+.btn-generar-inventario {
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-generar-inventario:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.btn-generar-inventario:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Barra de progreso */
+.progreso-container {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.progreso-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary, #ff6b35);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #666);
+    text-transform: uppercase;
+}
+
+.progreso-bar {
+    height: 10px;
+    background: #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progreso-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: 5px;
+    transition: width 0.5s ease;
+}
+
+.progreso-text {
+    text-align: center;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #666);
+}
+
+.progreso-text .completo {
+    color: #10b981;
+    font-weight: 600;
+}
+
+/* Items por grupo */
+.items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.items-grupo {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.grupo-titulo {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a2e);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.items-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.items-lista li.item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
+}
+
+.items-lista li.item:last-child {
+    border-bottom: none;
+}
+
+.items-lista li.item:hover {
+    background: #fafafa;
+}
+
+/* Estados de items */
+.item.pendiente {
+    border-left: 3px solid #f59e0b;
+}
+
+.item.subido {
+    border-left: 3px solid #3b82f6;
+}
+
+.item.validado {
+    border-left: 3px solid #10b981;
+}
+
+.item.rechazado {
+    border-left: 3px solid #ef4444;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.item-estado {
+    font-size: 1.25rem;
+}
+
+.item-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.item-titulo {
+    font-weight: 500;
+    color: var(--text-primary, #1a1a2e);
+}
+
+.badge-obligatorio {
+    font-size: 0.7rem;
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 500;
+    width: fit-content;
+}
+
+.item-acciones {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-small {
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-subir {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.btn-subir:hover {
+    background: #bfdbfe;
+}
+
+.btn-validar {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.btn-validar:hover {
+    background: #a7f3d0;
+}
+
+/* Estados de carga */
+.checklist-notaria-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary, #666);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary, #ff6b35);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.checklist-notaria-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    padding: 1rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.checklist-notaria-error button {
+    background: #b91c1c;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.no-items {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary, #666);
+}
+
+.no-items p {
+    margin: 0.5rem 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .progreso-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .items-lista li.item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .item-acciones {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

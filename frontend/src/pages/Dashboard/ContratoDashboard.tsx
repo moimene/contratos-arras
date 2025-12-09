@@ -1,20 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EstadoBadge from './components/EstadoBadge';
 import ResumenContrato from './components/ResumenContrato';
 import TimelineEvento from './components/TimelineEvento';
 import ProximasAcciones from './components/ProximasAcciones';
+import GestorDocumental from '../../components/GestorDocumental/GestorDocumental';
+import ChatPanel from '../../components/ChatPanel/ChatPanel';
+import StateAlert from '../../components/StateAlert/StateAlert';
+import GestorComunicaciones from '../../components/GestorComunicaciones/GestorComunicaciones';
+import CertificadoEventos from '../../components/CertificadoEventos/CertificadoEventos';
+import ChecklistNotaria from '../../components/notaria/ChecklistNotaria';
 
 interface ContratoData {
     id: string;
     numero_expediente: string;
     estado: string;
+    tipo_arras: string;
+    precio_total: number;
+    importe_arras: number;
+    porcentaje_arras_calculado?: number;
+    fecha_limite_firma_escritura: string;
     datos_wizard: any;
     eventos: any[];
-    partes: any[];
+    partes: Array<{
+        rol_en_contrato: string;
+        parte: {
+            nombre: string;
+            apellidos: string;
+            numero_documento: string;
+        };
+    }>;
     documentos: any[];
     mensajes: any[];
-    inmueble: any;
+    inmueble: {
+        direccion_completa: string;
+        ciudad: string;
+        provincia: string;
+        codigo_postal?: string;
+        referencia_catastral?: string;
+    };
     created_at: string;
 }
 
@@ -73,11 +97,59 @@ export default function ContratoDashboard({
         }
     };
 
+    /**
+     * Determina el paso del wizard al que debe navegar según el progreso del contrato
+     */
+    const getWizardStep = (): number => {
+        if (!contrato) return 1;
+
+        // Si está en FIRMADO o más avanzado, solo mostrar dashboard
+        if (['FIRMADO', 'NOTARIA', 'TERMINADO', 'LITIGIO'].includes(contrato.estado)) {
+            return 6; // Dashboard
+        }
+
+        const hasInmueble = contrato.inmueble && contrato.inmueble.direccion_completa;
+        const hasPartes = contrato.partes && contrato.partes.length >= 2;
+        const hasAcuerdo = contrato.datos_wizard?.acuerdo ||
+            (contrato.tipo_arras && contrato.precio_total && contrato.importe_arras);
+        const hasResumenAceptado = contrato.datos_wizard?.aceptado || contrato.estado === 'BORRADOR';
+        const hasBorrador = contrato.estado === 'BORRADOR';
+
+        // Determinar paso según progreso
+        if (!hasInmueble) {
+            return 1; // Step1Inmueble
+        }
+        if (!hasAcuerdo) {
+            return 2; // Step2Acuerdo
+        }
+        if (!hasPartes) {
+            return 3; // Step3Partes
+        }
+        if (!hasResumenAceptado) {
+            return 4; // Step4Resumen
+        }
+        if (!hasBorrador) {
+            return 5; // Step5Borrador
+        }
+
+        return 6; // Step6Firma/Dashboard
+    };
+
     const handleVolverWizard = () => {
         if (isEmbedded && onVolverWizard) {
             onVolverWizard();
         } else {
-            navigate('/');
+            // Navegación inteligente según el progreso
+            const step = getWizardStep();
+
+            // Si estado es FIRMADO o posterior, ir al inicio
+            if (!contrato || ['FIRMADO', 'NOTARIA', 'TERMINADO', 'LITIGIO'].includes(contrato.estado)) {
+                navigate('/');
+                return;
+            }
+
+            // Navegar al wizard con el paso correspondiente
+            navigate(`/wizard/${contrato.id}?step=${step}`);
         }
     };
 
@@ -124,33 +196,17 @@ export default function ContratoDashboard({
             <div className="dashboard-layout">
                 {/* Sidebar izquierda */}
                 <aside className="sidebar-left">
-                    <ResumenContrato datos={contrato.datos_wizard} />
+                    <ResumenContrato contrato={contrato} />
 
-                    {/* Panel de Documentos */}
-                    <div className="documentos-panel">
-                        <h3>📁 Documentos</h3>
-                        {contrato.documentos && contrato.documentos.length > 0 ? (
-                            <ul className="documentos-lista">
-                                {contrato.documentos.map((doc: any) => (
-                                    <li key={doc.id} className="documento-item">
-                                        <span className="documento-icono">📄</span>
-                                        <div className="documento-info">
-                                            <div className="documento-nombre">{doc.nombre_original}</div>
-                                            <div className="documento-meta">
-                                                {doc.tipo} · {new Date(doc.fecha_hora_subida).toLocaleDateString('es-ES')}
-                                            </div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="empty-state">No hay documentos subidos aún</p>
-                        )}
-                    </div>
+                    {/* Gestor Documental completo */}
+                    <GestorDocumental contratoId={contrato.id} rolActual="ADMIN" />
                 </aside>
 
                 {/* Contenido principal */}
                 <main className="main-content">
+                    {/* Alerta de transición de estado */}
+                    <StateAlert contratoId={contrato.id} currentState={contrato.estado} />
+
                     {/* Panel de Próximas Acciones */}
                     <ProximasAcciones
                         contratoId={contrato.id}
@@ -158,36 +214,21 @@ export default function ContratoDashboard({
                         firmasCompletas={contrato.estado === 'FIRMADO' || contrato.estado === 'CONVOCATORIA_NOTARIAL'}
                     />
 
+                    {/* Checklist Notaría - Visible en fase NOTARIA o posterior */}
+                    {['FIRMADO', 'CONVOCATORIA_NOTARIAL', 'NOTARIA', 'ESCRITURA_OTORGADA', 'NO_COMPARECENCIA'].includes(contrato.estado) && (
+                        <ChecklistNotaria contratoId={contrato.id} />
+                    )}
+
                     <TimelineEvento eventos={contrato.eventos || []} />
 
-                    {/* Chat Panel (placeholder para futuro) */}
-                    <div className="chat-panel">
-                        <h3>💬 Chat del Expediente</h3>
-                        {contrato.mensajes && contrato.mensajes.length > 0 ? (
-                            <div className="mensajes-lista">
-                                {contrato.mensajes.map((mensaje: any) => (
-                                    <div key={mensaje.id} className="mensaje-item">
-                                        <div className="mensaje-header">
-                                            <span className="mensaje-autor">
-                                                {mensaje.es_sistema ? '🤖 Sistema' : '👤 Usuario'}
-                                            </span>
-                                            <span className="mensaje-fecha">
-                                                {new Date(mensaje.created_at).toLocaleString('es-ES')}
-                                            </span>
-                                        </div>
-                                        <div className="mensaje-contenido">{mensaje.mensaje}</div>
-                                        {mensaje.es_relevante_probatoriamente && (
-                                            <div className="mensaje-relevancia">
-                                                ⚖️ Relevante Probatoriamente
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="empty-state">No hay mensajes aún</p>
-                        )}
-                    </div>
+                    {/* Gestor de Comunicaciones */}
+                    <GestorComunicaciones contratoId={contrato.id} rolActual="ADMIN" />
+
+                    {/* Certificado de Eventos */}
+                    <CertificadoEventos contratoId={contrato.id} />
+
+                    {/* Chat Panel */}
+                    <ChatPanel contratoId={contrato.id} />
                 </main>
             </div>
         </div>

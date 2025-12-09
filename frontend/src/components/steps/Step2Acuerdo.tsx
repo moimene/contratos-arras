@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useContract } from '../../context/ContractContext';
-import { validateModoEstandar, getModoEstandarBlockReason } from '../../context/ContractContext';
 
 export const Step2Acuerdo: React.FC = () => {
     const {
@@ -46,6 +45,16 @@ export const Step2Acuerdo: React.FC = () => {
         manifestacion_libre_cargas: true,
         manifestacion_corriente_pagos: true,
         manifestacion_certificaciones: true,
+
+        // 7. CONDICIONES PARA PLANTILLA MODULAR
+        objeto: contrato.objeto || 'VIVIENDA',
+        sinHipoteca: contrato.sinHipoteca !== false,
+        sinArrendatarios: contrato.sinArrendatarios !== false,
+        subrogacionArrendamiento: contrato.subrogacionArrendamiento || false,
+        mobiliarioEquipamiento: contrato.mobiliarioEquipamiento || false,
+        retencionesActiva: contrato.retenciones?.activa || false,
+        retencionesImporte: contrato.retenciones?.importe || 0,
+        retencionesConcepto: contrato.retenciones?.concepto || '',
     });
 
     const [porcentajeArras, setPorcentajeArras] = useState(0);
@@ -113,8 +122,43 @@ export const Step2Acuerdo: React.FC = () => {
                 return; // No aplicar el cambio todavía
             }
 
-            // Otras guardas se añadirán según se implementen campos
-            // (ej. con hipoteca, con arrendatarios, etc.)
+            // Guardas para condiciones incompatibles con Modo Estándar
+            if (name === 'objeto' && value !== 'VIVIENDA') {
+                setModalContent({
+                    title: '⚠️ Cambio incompatible con el Modo Estándar',
+                    message: `El Modelo Estándar del Observatorio solo admite vivienda. ¿Deseas desactivar el modo estándar para usar un inmueble tipo ${value}?`,
+                    actionLabel: 'Sí, usar modelo personalizado'
+                });
+                setPendingChange({ field: name, value });
+                setShowModoEstandarModal(true);
+                return;
+            }
+
+            // Para checkboxes, el valor viene de checked property
+            const isCheckbox = type === 'checkbox';
+            const checkboxValue = isCheckbox ? (e.target as HTMLInputElement).checked : null;
+
+            if (name === 'sinHipoteca' && isCheckbox && checkboxValue === false) {
+                setModalContent({
+                    title: '⚠️ Inmueble con hipoteca',
+                    message: 'El Modelo Estándar del Observatorio presupone vivienda sin hipoteca. ¿Deseas desactivar el modo estándar para añadir cláusula de cancelación hipotecaria?',
+                    actionLabel: 'Sí, añadir cláusula de hipoteca'
+                });
+                setPendingChange({ field: name, value: false });
+                setShowModoEstandarModal(true);
+                return;
+            }
+
+            if (name === 'sinArrendatarios' && isCheckbox && checkboxValue === false) {
+                setModalContent({
+                    title: '⚠️ Inmueble con arrendatarios',
+                    message: 'El Modelo Estándar del Observatorio presupone vivienda libre de arrendatarios. ¿Deseas desactivar el modo estándar para gestionar la subrogación o desalojo?',
+                    actionLabel: 'Sí, configurar arrendamiento'
+                });
+                setPendingChange({ field: name, value: false });
+                setShowModoEstandarModal(true);
+                return;
+            }
         }
 
         setFormData((prev) => ({
@@ -187,7 +231,18 @@ export const Step2Acuerdo: React.FC = () => {
             return;
         }
 
-        updateContrato({ ...formData, porcentaje_arras_calculado: porcentajeArras });
+        // Preparar datos con estructura correcta para retenciones
+        const contratoData = {
+            ...formData,
+            porcentaje_arras_calculado: porcentajeArras,
+            retenciones: formData.retencionesActiva ? {
+                activa: true,
+                importe: formData.retencionesImporte,
+                concepto: formData.retencionesConcepto
+            } : undefined
+        };
+
+        updateContrato(contratoData);
         setCurrentStep(3);
     };
 
@@ -556,6 +611,132 @@ export const Step2Acuerdo: React.FC = () => {
                             <small>{formData.observaciones.length} / 2000 caracteres</small>
                         </div>
                     </div>
+
+                    {/* 6. ÁMBITO DEL CONTRATO (CONDICIONES MODULARES) */}
+                    {!contrato.modoEstandarObservatorio && (
+                        <div className="form-section condiciones-avanzadas">
+                            <h3>6️⃣ Ámbito del Contrato</h3>
+                            <p className="section-subtitle">Configura las condiciones especiales que afectan a las cláusulas del contrato.</p>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="objeto">Tipo de inmueble</label>
+                                    <select
+                                        id="objeto"
+                                        name="objeto"
+                                        value={formData.objeto}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="VIVIENDA">Vivienda</option>
+                                        <option value="LOCAL">Local comercial</option>
+                                        <option value="OFICINA">Oficina</option>
+                                        <option value="GARAJE">Plaza de garaje</option>
+                                        <option value="SOLAR">Solar</option>
+                                        <option value="OTRO">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="form-row checkboxes-row">
+                                <div className="form-group checkbox-group">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="sinHipoteca"
+                                            checked={formData.sinHipoteca}
+                                            onChange={(e) => handleChange({ target: { name: 'sinHipoteca', value: e.target.checked, type: 'checkbox' } } as any)}
+                                        />
+                                        <span>Sin hipoteca pendiente</span>
+                                    </label>
+                                    {!formData.sinHipoteca && (
+                                        <small className="hint">⚠️ Se añadirá cláusula de cancelación hipotecaria simultánea</small>
+                                    )}
+                                </div>
+
+                                <div className="form-group checkbox-group">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="sinArrendatarios"
+                                            checked={formData.sinArrendatarios}
+                                            onChange={(e) => handleChange({ target: { name: 'sinArrendatarios', value: e.target.checked, type: 'checkbox' } } as any)}
+                                        />
+                                        <span>Sin arrendatarios ni ocupantes</span>
+                                    </label>
+                                    {!formData.sinArrendatarios && (
+                                        <div className="sub-option">
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    name="subrogacionArrendamiento"
+                                                    checked={formData.subrogacionArrendamiento}
+                                                    onChange={handleChange}
+                                                />
+                                                <span>Subrogación en contrato de arrendamiento</span>
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="form-row checkboxes-row">
+                                <div className="form-group checkbox-group">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="mobiliarioEquipamiento"
+                                            checked={formData.mobiliarioEquipamiento}
+                                            onChange={handleChange}
+                                        />
+                                        <span>Incluye mobiliario/equipamiento</span>
+                                    </label>
+                                    {formData.mobiliarioEquipamiento && (
+                                        <small className="hint">📋 Deberás adjuntar inventario como anexo</small>
+                                    )}
+                                </div>
+
+                                <div className="form-group checkbox-group">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="retencionesActiva"
+                                            checked={formData.retencionesActiva}
+                                            onChange={handleChange}
+                                        />
+                                        <span>Retención en el precio</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {formData.retencionesActiva && (
+                                <div className="form-row sub-fields">
+                                    <div className="form-group">
+                                        <label htmlFor="retencionesImporte">Importe retención (€)</label>
+                                        <input
+                                            type="number"
+                                            id="retencionesImporte"
+                                            name="retencionesImporte"
+                                            value={formData.retencionesImporte || ''}
+                                            onChange={handleChange}
+                                            min="0"
+                                            placeholder="5000"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="retencionesConcepto">Concepto</label>
+                                        <input
+                                            type="text"
+                                            id="retencionesConcepto"
+                                            name="retencionesConcepto"
+                                            value={formData.retencionesConcepto}
+                                            onChange={handleChange}
+                                            placeholder="Plusvalía, IBI, comunidad..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* 6. MANIFESTACIONES DEL VENDEDOR */}
                     <div className="form-section">

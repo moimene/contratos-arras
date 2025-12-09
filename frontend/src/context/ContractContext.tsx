@@ -84,7 +84,7 @@ interface Contrato {
     porcentaje_arras_calculado?: number;
     moneda?: string;
     fecha_limite_firma_escritura: string;
-    forma_pago_arras: 'AL_FIRMAR' | 'POSTERIOR';
+    forma_pago_arras: 'AL_FIRMAR' | 'POSTERIOR' | 'ESCROW';
     plazo_pago_arras_dias?: number;
     fecha_limite_pago_arras?: string;
     iban_vendedor?: string;
@@ -108,6 +108,42 @@ interface Contrato {
     modoEstandarObservatorio?: boolean;
     configuracionEstandar?: ConfiguracionEstandar;
     otrosCambiosTerminos?: string;
+
+    // ============================================
+    // CONDICIONES PARA SELECCIÓN DE PLANTILLA
+    // ============================================
+
+    // Tipo de inmueble (default: VIVIENDA)
+    objeto?: 'VIVIENDA' | 'LOCAL' | 'OFICINA' | 'SOLAR' | 'GARAJE' | 'OTRO';
+
+    // Sin cargas (default: true = sin hipoteca)
+    sinHipoteca?: boolean;
+
+    // Sin arrendatarios (default: true = libre de ocupantes)
+    sinArrendatarios?: boolean;
+
+    // Derecho aplicable (default: COMUN)
+    derecho?: 'COMUN' | 'FORAL';
+
+    // Escrow/depósito notarial
+    escrow?: {
+        activo: boolean;
+        depositario?: string;
+        gastosCargo?: 'COMPRADOR' | 'VENDEDOR' | 'MITADES';
+    };
+
+    // Retenciones en el precio
+    retenciones?: {
+        activa: boolean;
+        importe?: number;
+        concepto?: string;
+    };
+
+    // Mobiliario y equipamiento incluido
+    mobiliarioEquipamiento?: boolean;
+
+    // Subrogación en arrendamiento (si sinArrendatarios = false)
+    subrogacionArrendamiento?: boolean;
 }
 
 interface Parte {
@@ -142,6 +178,7 @@ interface ContractContextType {
     removeVendedor: (index: number) => void;
     submitContract: () => Promise<void>;
     reset: () => void;
+    loadContratoExistente: (id: string) => Promise<void>;
 
     // Modo Estándar Observatorio
     activarModoEstandar: () => void;
@@ -307,6 +344,132 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
         }));
     };
 
+    /**
+     * Carga un contrato existente para editar en el wizard
+     */
+    const loadContratoExistente = async (id: string): Promise<void> => {
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const response = await fetch(`${apiUrl}/api/contracts/${id}`);
+
+            if (!response.ok) {
+                throw new Error('Contrato no encontrado');
+            }
+
+            const result = await response.json();
+            if (!result.success || !result.data) {
+                throw new Error(result.error || 'Error cargando contrato');
+            }
+
+            const data = result.data;
+
+            // Establecer ID
+            setContratoId(id);
+
+            // Cargar inmueble
+            if (data.inmueble) {
+                setInmueble(data.inmueble);
+            }
+
+            // Cargar datos del contrato
+            setContrato({
+                tipo_arras: data.tipo_arras,
+                precio_total: data.precio_total,
+                importe_arras: data.importe_arras,
+                porcentaje_arras_calculado: data.porcentaje_arras_calculado,
+                fecha_limite_firma_escritura: data.fecha_limite_firma_escritura,
+                forma_pago_arras: data.forma_pago_arras || 'AL_FIRMAR',
+                plazo_pago_arras_dias: data.plazo_pago_arras_dias,
+                gastos_quien: data.gastos_quien || 'LEY',
+                via_resolucion: data.via_resolucion || 'JUZGADOS',
+                firma_preferida: data.firma_preferida || 'ELECTRONICA',
+                notario_designado_nombre: data.notario_designado_nombre,
+                notario_designado_direccion: data.notario_designado_direccion,
+                iban_vendedor: data.iban_vendedor,
+                banco_vendedor: data.banco_vendedor,
+                ...(data.datos_wizard || {})
+            });
+
+            // Cargar partes - mapear a estructura esperada por Step3Partes
+            if (data.partes && Array.isArray(data.partes)) {
+                const compradorsList: any[] = [];
+                const vendedoresList: any[] = [];
+
+                for (const p of data.partes) {
+                    const parteData = p.parte || {};
+                    const rol = p.rol_en_contrato as 'COMPRADOR' | 'VENDEDOR';
+
+                    // Determinar si es persona física o jurídica
+                    const esPJ = parteData.cif || parteData.denominacion;
+
+                    if (esPJ) {
+                        // Persona Jurídica
+                        const pj = {
+                            id: parteData.id || p.parte_id,
+                            tipo: 'PERSONA_JURIDICA' as const,
+                            rol,
+                            denominacion: parteData.denominacion || parteData.nombre || '',
+                            cif: parteData.cif || parteData.numero_documento || '',
+                            domicilio_social: parteData.domicilio || '',
+                            representante: {
+                                tipo_representante: 'ADMINISTRADOR_UNICO' as const,
+                                nombre: parteData.representante_nombre || '',
+                                apellidos: parteData.representante_apellidos || '',
+                                tipo_documento: 'DNI',
+                                numero_documento: '',
+                                email: parteData.email || '',
+                                base_representacion: 'CARGO' as const
+                            },
+                            porcentaje: p.porcentaje_propiedad || 100,
+                            obligado_aceptar: p.obligado_aceptar ?? true,
+                            obligado_firmar: p.obligado_firmar ?? true
+                        };
+
+                        if (rol === 'COMPRADOR') {
+                            compradorsList.push(pj);
+                        } else if (rol === 'VENDEDOR') {
+                            vendedoresList.push(pj);
+                        }
+                    } else {
+                        // Persona Física
+                        const pf = {
+                            id: parteData.id || p.parte_id,
+                            tipo: 'PERSONA_FISICA' as const,
+                            rol,
+                            nombre: parteData.nombre || '',
+                            apellidos: parteData.apellidos || '',
+                            tipo_documento: parteData.tipo_documento || 'DNI',
+                            numero_documento: parteData.numero_documento || '',
+                            email: parteData.email || '',
+                            telefono: parteData.telefono || '',
+                            domicilio: parteData.domicilio || '',
+                            estado_civil: parteData.estado_civil || 'SOLTERO',
+                            vivienda_habitual: false,
+                            requiere_consentimiento_conyuge: false,
+                            porcentaje: p.porcentaje_propiedad || 100,
+                            obligado_aceptar: p.obligado_aceptar ?? true,
+                            obligado_firmar: p.obligado_firmar ?? true
+                        };
+
+                        if (rol === 'COMPRADOR') {
+                            compradorsList.push(pf);
+                        } else if (rol === 'VENDEDOR') {
+                            vendedoresList.push(pf);
+                        }
+                    }
+                }
+
+                setCompradores(compradorsList);
+                setVendedores(vendedoresList);
+            }
+
+            console.log('Contrato cargado para edicion:', id);
+        } catch (error) {
+            console.error('Error cargando contrato existente:', error);
+            throw error;
+        }
+    };
+
     return (
         <ContractContext.Provider
             value={{
@@ -326,6 +489,7 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
                 removeVendedor,
                 submitContract,
                 reset,
+                loadContratoExistente,
                 activarModoEstandar,
                 desactivarModoEstandar,
             }}

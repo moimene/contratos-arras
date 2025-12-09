@@ -1,8 +1,72 @@
 import { Router, Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
 import { registerEvent } from '../services/eventService.js';
+import { notariaService } from '../services/notariaService.js';
 
 const router = Router();
+
+/**
+ * POST /api/notaria/:contratoId/generar-inventario
+ * Genera el inventario de documentos para fase NOTARIA
+ * basado en las condiciones del contrato (módulos)
+ */
+router.post('/:contratoId/generar-inventario', async (req: Request, res: Response) => {
+    try {
+        const { contratoId } = req.params;
+        const datosContrato = req.body.datosContrato || null;
+
+        const count = await notariaService.generarInventarioNotaria(contratoId, datosContrato);
+
+        res.json({
+            success: true,
+            message: `Generados ${count} items de inventario NOTARIA`,
+            count
+        });
+    } catch (error: any) {
+        console.error('Error generando inventario notaría:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/notaria/:contratoId/inventario
+ * Obtiene el inventario de documentos del grupo NOTARIA
+ */
+router.get('/:contratoId/inventario', async (req: Request, res: Response) => {
+    try {
+        const { contratoId } = req.params;
+
+        const items = await notariaService.obtenerInventarioNotaria(contratoId);
+
+        res.json({
+            success: true,
+            data: items
+        });
+    } catch (error: any) {
+        console.error('Error obteniendo inventario notaría:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/notaria/:contratoId/inventario/estado
+ * Obtiene el estado del inventario NOTARIA (progreso)
+ */
+router.get('/:contratoId/inventario/estado', async (req: Request, res: Response) => {
+    try {
+        const { contratoId } = req.params;
+
+        const estado = await notariaService.obtenerEstadoInventarioNotaria(contratoId);
+
+        res.json({
+            success: true,
+            data: estado
+        });
+    } catch (error: any) {
+        console.error('Error obteniendo estado inventario notaría:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 /**
  * POST /api/notaria/:contratoId/crear-cita

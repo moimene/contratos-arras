@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ExpedientesList.css';
 
@@ -55,24 +55,24 @@ export default function ExpedientesList() {
 
     const getEstadoBadgeClass = (estado: string) => {
         const clases: Record<string, string> = {
-            'BORRADOR': 'badge-draft',
-            'BORRADOR_GENERADO': 'badge-generated',
+            'INICIADO': 'badge-draft',
+            'BORRADOR': 'badge-generated',
             'FIRMADO': 'badge-signed',
-            'CONVOCATORIA_NOTARIAL': 'badge-notary',
-            'ESCRITURA_OTORGADA': 'badge-complete',
-            'RESUELTO': 'badge-resolved'
+            'NOTARIA': 'badge-notary',
+            'TERMINADO': 'badge-complete',
+            'LITIGIO': 'badge-resolved'
         };
         return clases[estado] || 'badge-default';
     };
 
     const getEstadoTexto = (estado: string) => {
         const textos: Record<string, string> = {
+            'INICIADO': 'Iniciado',
             'BORRADOR': 'Borrador',
-            'BORRADOR_GENERADO': 'Borrador Generado',
             'FIRMADO': 'Firmado',
-            'CONVOCATORIA_NOTARIAL': 'Convocatoria Notarial',
-            'ESCRITURA_OTORGADA': 'Escritura Otorgada',
-            'RESUELTO': 'Resuelto'
+            'NOTARIA': 'Notaría',
+            'TERMINADO': 'Terminado',
+            'LITIGIO': 'Litigio'
         };
         return textos[estado] || estado;
     };
@@ -110,7 +110,7 @@ export default function ExpedientesList() {
                     </div>
                     <div className="header-right">
                         <button
-                            onClick={() => navigate('/')}
+                            onClick={() => navigate('/wizard/nuevo')}
                             className="btn-primary btn-new-expediente"
                         >
                             <span className="btn-icon">➕</span>
@@ -128,22 +128,28 @@ export default function ExpedientesList() {
                         Todos
                     </button>
                     <button
+                        className={`filtro-btn ${filtroEstado === 'BORRADOR' ? 'active' : ''}`}
+                        onClick={() => setFiltroEstado('BORRADOR')}
+                    >
+                        Pendientes Firma
+                    </button>
+                    <button
                         className={`filtro-btn ${filtroEstado === 'FIRMADO' ? 'active' : ''}`}
                         onClick={() => setFiltroEstado('FIRMADO')}
                     >
                         Firmados
                     </button>
                     <button
-                        className={`filtro-btn ${filtroEstado === 'BORRADOR_GENERADO' ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('BORRADOR_GENERADO')}
-                    >
-                        Pendientes Firma
-                    </button>
-                    <button
-                        className={`filtro-btn ${filtroEstado === 'CONVOCATORIA_NOTARIAL' ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('CONVOCATORIA_NOTARIAL')}
+                        className={`filtro-btn ${filtroEstado === 'NOTARIA' ? 'active' : ''}`}
+                        onClick={() => setFiltroEstado('NOTARIA')}
                     >
                         En Notaría
+                    </button>
+                    <button
+                        className={`filtro-btn ${filtroEstado === 'LITIGIO' ? 'active' : ''}`}
+                        onClick={() => setFiltroEstado('LITIGIO')}
+                    >
+                        En Litigio
                     </button>
                 </div>
             </header>
@@ -155,7 +161,7 @@ export default function ExpedientesList() {
                     <h3>No hay expedientes</h3>
                     <p>Crea tu primer expediente de arras haciendo clic en "Nuevo Expediente"</p>
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate('/wizard/nuevo')}
                         className="btn-primary"
                     >
                         Crear Primer Expediente

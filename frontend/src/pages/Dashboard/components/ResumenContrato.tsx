@@ -1,16 +1,41 @@
-import React from 'react';
+/**
+ * ResumenContrato - Summary panel for contract dashboard
+ * 
+ * Displays key contract information: property, terms, and parties
+ */
 
-interface ResumenContratoProps {
-    datos: {
-        inmueble: any;
-        contrato: any;
-        compradores: any[];
-        vendedores: any[];
+interface ContratoData {
+    id: string;
+    numero_expediente: string;
+    estado: string;
+    tipo_arras: string;
+    precio_total: number;
+    importe_arras: number;
+    porcentaje_arras_calculado?: number;
+    fecha_limite_firma_escritura: string;
+    inmueble: {
+        direccion_completa: string;
+        ciudad: string;
+        provincia: string;
+        codigo_postal?: string;
+        referencia_catastral?: string;
     };
+    partes: Array<{
+        rol_en_contrato: string;
+        parte: {
+            nombre: string;
+            apellidos: string;
+            numero_documento: string;
+        };
+    }>;
 }
 
-export default function ResumenContrato({ datos }: ResumenContratoProps) {
-    const { inmueble, contrato, compradores, vendedores } = datos;
+interface ResumenContratoProps {
+    contrato: ContratoData;
+}
+
+export default function ResumenContrato({ contrato }: ResumenContratoProps) {
+    const { inmueble, partes } = contrato;
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-ES', {
@@ -20,12 +45,17 @@ export default function ResumenContrato({ datos }: ResumenContratoProps) {
     };
 
     const formatDate = (dateString: string) => {
+        if (!dateString) return 'No especificada';
         return new Date(dateString).toLocaleDateString('es-ES', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
         });
     };
+
+    // Extract parties by role
+    const vendedores = partes?.filter(p => p.rol_en_contrato === 'VENDEDOR') || [];
+    const compradores = partes?.filter(p => p.rol_en_contrato === 'COMPRADOR') || [];
 
     return (
         <div className="resumen-contrato">
@@ -36,20 +66,23 @@ export default function ResumenContrato({ datos }: ResumenContratoProps) {
                 <div className="resumen-item">
                     <span className="label">Dirección:</span>
                     <span className="value">
-                        {inmueble.direccion_completa}
+                        {inmueble?.direccion_completa || 'N/A'}
                     </span>
                 </div>
                 <div className="resumen-item">
                     <span className="label">Ciudad:</span>
-                    <span className="value">{inmueble.ciudad}, {inmueble.provincia}</span>
+                    <span className="value">
+                        {inmueble?.ciudad || 'N/A'}
+                        {inmueble?.provincia && `, ${inmueble.provincia}`}
+                    </span>
                 </div>
-                {inmueble.codigo_postal && (
+                {inmueble?.codigo_postal && (
                     <div className="resumen-item">
                         <span className="label">C.P.:</span>
                         <span className="value">{inmueble.codigo_postal}</span>
                     </div>
                 )}
-                {inmueble.referencia_catastral && (
+                {inmueble?.referencia_catastral && (
                     <div className="resumen-item">
                         <span className="label">Ref. Catastral:</span>
                         <span className="value">{inmueble.referencia_catastral}</span>
@@ -66,7 +99,8 @@ export default function ResumenContrato({ datos }: ResumenContratoProps) {
                 <div className="resumen-item">
                     <span className="label">Arras:</span>
                     <span className="value">
-                        {formatCurrency(contrato.importe_arras)} ({contrato.porcentaje_arras}%)
+                        {formatCurrency(contrato.importe_arras)}
+                        {contrato.porcentaje_arras_calculado && ` (${contrato.porcentaje_arras_calculado}%)`}
                     </span>
                 </div>
                 <div className="resumen-item">
@@ -84,33 +118,24 @@ export default function ResumenContrato({ datos }: ResumenContratoProps) {
                 <div className="resumen-item">
                     <span className="label">Vendedores:</span>
                     <span className="value">
-                        {vendedores.map((v, i) => (
+                        {vendedores.length > 0 ? vendedores.map((v, i) => (
                             <div key={i} className="parte-item">
-                                {v.nombre} {v.apellidos} ({v.numero_documento})
+                                {v.parte?.nombre} {v.parte?.apellidos} ({v.parte?.numero_documento})
                             </div>
-                        ))}
+                        )) : <span className="empty-state">Sin vendedores</span>}
                     </span>
                 </div>
                 <div className="resumen-item">
                     <span className="label">Compradores:</span>
                     <span className="value">
-                        {compradores.map((c, i) => (
+                        {compradores.length > 0 ? compradores.map((c, i) => (
                             <div key={i} className="parte-item">
-                                {c.nombre} {c.apellidos} ({c.numero_documento})
+                                {c.parte?.nombre} {c.parte?.apellidos} ({c.parte?.numero_documento})
                             </div>
-                        ))}
+                        )) : <span className="empty-state">Sin compradores</span>}
                     </span>
                 </div>
             </section>
-
-            {contrato.modoEstandarObservatorio && (
-                <section className="resumen-seccion modo-icade">
-                    <div className="icade-badge">
-                        <span className="icade-icon">✓</span>
-                        <span>Modo Estándar Legaltech</span>
-                    </div>
-                </section>
-            )}
         </div>
     );
 }

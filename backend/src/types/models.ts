@@ -1,11 +1,11 @@
 // Tipos base del sistema
 export type EstadoContrato =
-    | 'BORRADOR'
-    | 'EN_NEGOCIACION'
-    | 'TERMINOS_ESENCIALES_ACEPTADOS'
-    | 'BORRADOR_GENERADO'
-    | 'FIRMADO'
-    | 'CERRADO';
+    | 'INICIADO'      // Alta inicial: inmueble, partes, términos (antes de aceptación)
+    | 'BORRADOR'      // Términos aceptados, pendiente firma (no vinculante)
+    | 'FIRMADO'       // Documento firmado en plataforma
+    | 'NOTARIA'       // Con cita en notaría para escritura
+    | 'TERMINADO'     // Compraventa completada o cerrado sin litigio
+    | 'LITIGIO';      // En disputa por incumplimiento
 
 export type TipoArras =
     | 'CONFIRMATORIAS'
@@ -15,7 +15,8 @@ export type TipoArras =
 
 export type FormaPagoArras =
     | 'AL_FIRMAR'
-    | 'POSTERIOR';
+    | 'POSTERIOR'
+    | 'ESCROW';
 
 export type ViaResolucion =
     | 'JUZGADOS'
@@ -36,10 +37,50 @@ export type EstadoPago =
     | 'ACREDITADO'
     | 'RECHAZADO';
 
-export type TipoArchivo =
-    | 'JUSTIFICANTE_ARRAS'
+// Tipo de documento - extendido según especificación legal
+export type TipoDocumento =
+    // Inmueble y situación
+    | 'NOTA_SIMPLE'
+    | 'ESCRITURA_ANTERIOR'
+    | 'RECIBO_IBI'
+    | 'CERTIFICADO_COMUNIDAD'
+    | 'CERTIFICADO_EFICIENCIA_ENERGETICA'
+    | 'OTROS_DOC_INMUEBLE'
+    // Partes y representación
+    | 'DNI_NIE_COMPRADOR'
+    | 'DNI_NIE_VENDEDOR'
+    | 'PODER_COMPRADOR'
+    | 'PODER_VENDEDOR'
+    | 'DOCUMENTACION_REGIMEN_MATRIMONIAL'
+    | 'DATOS_ASESOR'
+    // Contractuales y arras
+    | 'CONTRATO_ARRAS_BORRADOR'
+    | 'CONTRATO_ARRAS_FIRMADO'
+    | 'JUSTIFICANTE_PAGO_ARRAS'
+    | 'OTROS_ACUERDOS_ADICIONALES'
+    // Notaría y escritura
+    | 'CONVOCATORIA_NOTARIA'
+    | 'MINUTA_ESCRITURA'
+    | 'DOC_IDENTIDAD_NOTARIA'
+    | 'ESCRITURA_COMPRAVENTA_FIRMADA'
+    | 'DOC_CANCELACION_HIPOTECA'
+    | 'ACUERDOS_SUBROGACION'
+    // Incidencias y cierre
     | 'ACTA_NO_COMPARECENCIA'
+    | 'NOTIFICACIONES_NO_COMPARECENCIA'
+    | 'ALEGACIONES_NO_COMPARECIENTE'
+    | 'CERTIFICADO_EVENTOS'
+    | 'DOC_LITIGIO_ARBITRAJE'
+    // Categorías adicionales (ad-hoc)
+    | 'URBANISTICO'
+    | 'ADMINISTRATIVO'
+    | 'LEGAL'
+    | 'TECNICO'
+    | 'FISCAL'
     | 'OTRO';
+
+// Alias para compatibilidad
+export type TipoArchivo = TipoDocumento;
 
 export type TipoEvento =
     | 'CONTRATO_CREADO'
@@ -47,18 +88,41 @@ export type TipoEvento =
     | 'BORRADOR_GENERADO'
     | 'TERMINOS_ACEPTADOS'
     | 'FIRMA_REGISTRADA'
+    | 'FIRMA_ELECTRONICA'
     | 'ARRAS_DECLARADAS'
     | 'ARRAS_ACREDITADAS'
+    | 'PAGO_ARRAS_CONFIRMADO'
+    | 'JUSTIFICANTE_SUBIDO'
     | 'CONVOCATORIA_NOTARIAL'
+    | 'MINUTA_GENERADA'
     | 'ACTA_NO_COMPARECENCIA'
+    | 'RESPUESTA_NO_COMPARECIENTE'
+    | 'RETENCION_COMUNICADA'
     | 'ALEGACION_PRESENTADA'
     | 'VENTANA_ALEGACIONES_CERRADA'
     | 'ESCRITURA_OTORGADA'
+    | 'CONTRATO_RESUELTO'
     | 'RESUELTO_POR_INCUMPLIMIENTO_COMPRA'
     | 'RESUELTO_POR_INCUMPLIMIENTO_VENTA'
     | 'CONTRATO_CERRADO'
+    | 'CONTRATO_RECLAMADO'
     | 'ARBITRAJE_SOLICITADO'
     | 'ARBITRAJE_RESUELTO'
+    | 'COMUNICACION_ENVIADA'
+    | 'COMUNICACION_ENTREGADA'
+    | 'COMUNICACION_LEIDA'
+    | 'INVENTARIO_ITEM_CREADO'
+    | 'INVENTARIO_ACTUALIZADO'
+    | 'DOCUMENTO_SUBIDO'
+    | 'DOCUMENTO_VALIDADO'
+    | 'DOCUMENTO_RECHAZADO'
+    | 'INVENTARIO_ITEM_ELIMINADO'
+    | 'CONTRATO_FIRMADO'
+    | 'MENSAJE_ENVIADO'
+    | 'MENSAJE_MARCADO_RELEVANTE'
+    | 'COMUNICACION_EXTERNA_IMPORTADA'
+    | 'COMUNICACION_RESPONDIDA'
+    | 'CERTIFICADO_GENERADO'
     | 'EVENTO_CUSTOM';
 
 export type RespuestaTipo =
@@ -133,6 +197,37 @@ export interface ContratoArras {
     identificador_unico: string;
     arras_acreditadas_at?: string;
     motivo_cierre?: string;
+
+    // ============================================
+    // CAMPOS PARA CLÁUSULAS MODULARES
+    // ============================================
+    /** Tipo de objeto: VIVIENDA, LOCAL, OFICINA, GARAJE, SOLAR, OTRO */
+    objeto?: 'VIVIENDA' | 'LOCAL' | 'OFICINA' | 'GARAJE' | 'SOLAR' | 'OTRO';
+    /** True si no hay hipoteca pendiente (default true) */
+    sinHipoteca?: boolean;
+    /** True si no hay arrendatarios/ocupantes (default true) */
+    sinArrendatarios?: boolean;
+    /** Derecho aplicable: COMUN, FORAL_NAVARRA, FORAL_EUSKADI, FORAL_ARAGON */
+    derecho?: 'COMUN' | 'FORAL_NAVARRA' | 'FORAL_EUSKADI' | 'FORAL_ARAGON';
+    /** Configuración de cuenta escrow si se usa */
+    escrow?: {
+        activo: boolean;
+        depositario?: string;
+        condiciones?: string;
+    };
+    /** Configuración de retenciones sobre precio */
+    retenciones?: {
+        activa: boolean;
+        importe?: number;
+        concepto?: string;
+    };
+    /** True si incluye mobiliario/equipamiento */
+    mobiliarioEquipamiento?: boolean;
+    /** True si hay subrogación de arrendamiento existente */
+    subrogacionArrendamiento?: boolean;
+    /** True si usa el modelo estándar Observatorio Legaltech */
+    modoEstandarObservatorio?: boolean;
+
     created_at: string;
     updated_at: string;
 }
@@ -266,4 +361,68 @@ export interface CitaNotaria {
     notas?: string;
     lista_documentacion_texto?: string;
     fecha_hora_creacion: string;
+}
+
+export interface Comunicacion {
+    id: string;
+    contrato_id: string;
+    tipo_comunicacion: string;
+    tipo_funcion?: string;
+    canal: string;
+    remitente_rol?: string;
+    remitente_usuario_id?: string;
+    remitente_externo?: string;
+    destinatarios_roles?: string[];
+    destinatarios_externos?: string;
+    asunto?: string;
+    contenido?: string;
+    contenido_html?: string;
+    resumen_externo?: string;
+    fecha_comunicacion?: string;
+    fecha_registro: string;
+    fecha_envio?: string;
+    fecha_entrega?: string;
+    fecha_lectura?: string;
+    estado: string;
+    es_externa: boolean;
+    comunicacion_padre_id?: string;
+    adjuntos_archivo_ids?: string[];
+    hash_contenido?: string;
+    sello_qtsp_id?: string;
+    metadatos?: Record<string, any>;
+    registrado_por_rol?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+// Contrato completo con relaciones (para PDF generation, etc.)
+// Matches the actual structure returned by getContratoFull in contratos.repo.ts
+export interface ContratoFull {
+    contrato: ContratoArras & { inmueble?: Inmueble };
+    inmueble?: Inmueble;
+    partes: Array<{
+        id: string;
+        contrato_id: string;
+        parte_id: string;
+        rol_en_contrato: string;
+        obligado_aceptar: boolean;
+        obligado_firmar: boolean;
+        porcentaje_propiedad?: number;
+        parte: Parte;
+    }>;
+    obligadosAceptar: string[];
+    aceptacionesValidas: Aceptacion[];
+    firmasValidas: Firma[];
+}
+
+// Legacy type for backwards compatibility
+export interface ContratoFullLegacy extends ContratoArras {
+    inmueble?: Inmueble;
+    partes?: Array<Parte & { rol_en_contrato?: string }>;
+    compradores?: Parte[];
+    vendedores?: Parte[];
+    aceptaciones?: Aceptacion[];
+    firmas?: Firma[];
+    eventos?: Evento[];
+    pagos?: Pago[];
 }

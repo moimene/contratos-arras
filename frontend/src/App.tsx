@@ -1,6 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ContractProvider, useContract } from './context/ContractContext';
+import { AuthProvider } from './features/auth/AuthContext';
+import LoginPage from './features/auth/LoginPage';
 import { Stepper } from './components/Stepper';
 import { Step1Inmueble } from './components/steps/Step1Inmueble';
 import { Step2Acuerdo } from './components/steps/Step2Acuerdo';
@@ -34,6 +36,34 @@ const StepRouter: React.FC = () => {
 };
 
 const WizardPage: React.FC = () => {
+  const { contratoId } = useParams<{ contratoId?: string }>();
+  const [searchParams] = useSearchParams();
+  const { setCurrentStep, loadContratoExistente } = useContract();
+
+  // Cargar contrato existente si hay contratoId
+  React.useEffect(() => {
+    const stepParam = searchParams.get('step');
+
+    if (contratoId && contratoId !== 'nuevo') {
+      // Cargar datos del contrato existente
+      loadContratoExistente(contratoId).then(() => {
+        // Establecer el paso indicado en la URL
+        if (stepParam) {
+          const step = parseInt(stepParam, 10);
+          if (step >= 1 && step <= 6) {
+            setCurrentStep(step);
+          }
+        }
+      });
+    } else if (stepParam) {
+      // Solo establecer paso para nuevo contrato
+      const step = parseInt(stepParam, 10);
+      if (step >= 1 && step <= 6) {
+        setCurrentStep(step);
+      }
+    }
+  }, [contratoId, searchParams]);
+
   return (
     <div className="wizard-container">
       <div className="wizard-header">
@@ -60,23 +90,34 @@ const WizardPage: React.FC = () => {
 function App() {
   return (
     <BrowserRouter>
-      <ContractProvider>
-        <Routes>
-          {/* Home - Lista de Expedientes */}
-          <Route path="/" element={<ExpedientesList />} />
+      <AuthProvider>
+        <ContractProvider>
+          <Routes>
+            {/* Auth - Login/Register */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/auth" element={<LoginPage />} />
 
-          {/* Wizard - Nuevo Expediente */}
-          <Route path="/wizard/nuevo" element={<WizardPage />} />
+            {/* Home - Lista de Expedientes */}
+            <Route path="/" element={<ExpedientesList />} />
+            <Route path="/expedientes" element={<ExpedientesList />} />
 
-          {/* Dashboard - Gestión de Expediente */}
-          <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
+            {/* Wizard - Nuevo Expediente (público) */}
+            <Route path="/wizard/nuevo" element={<WizardPage />} />
+            {/* Wizard - Editar Expediente existente */}
+            <Route path="/wizard/:contratoId" element={<WizardPage />} />
 
-          {/* Redirect de rutas desconocidas */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </ContractProvider>
+            {/* Dashboard - Gestión de Expediente */}
+            <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
+            <Route path="/dashboard/:contratoId" element={<ContratoDashboard />} />
+
+            {/* Redirect de rutas desconocidas */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ContractProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
 
 export default App;
+

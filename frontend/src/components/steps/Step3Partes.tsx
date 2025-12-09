@@ -3,6 +3,7 @@ import { useContract } from '../../context/ContractContext';
 import { FormPersonaFisica } from './FormPersonaFisica';
 import { FormPersonaJuridica } from './FormPersonaJuridica';
 import { ParteCard } from './ParteCard';
+import DocumentosStep from '../GestorDocumental/DocumentosStep';
 
 // Interfaces locales (duplicadas por simplicidad, considerar mover a types/)
 interface Conyuge {
@@ -121,7 +122,7 @@ const getInitialPJ = (rol: 'COMPRADOR' | 'VENDEDOR'): PersonaJuridica => ({
 });
 
 export const Step3Partes: React.FC = () => {
-    const { compradores, vendedores, addComprador, addVendedor, removeComprador, removeVendedor, setCurrentStep } = useContract();
+    const { compradores, vendedores, addComprador, addVendedor, removeComprador, removeVendedor, setCurrentStep, contratoId } = useContract();
 
     const [showCompradorForm, setShowCompradorForm] = useState(false);
     const [showVendedorForm, setShowVendedorForm] = useState(false);
@@ -618,6 +619,14 @@ export const Step3Partes: React.FC = () => {
                         <div className="sidebar-alert">
                             <small>⚠️ Añade al menos un comprador y un vendedor</small>
                         </div>
+                    )}
+
+                    {/* Documentos de identificación */}
+                    {contratoId && (
+                        <DocumentosStep
+                            contratoId={contratoId}
+                            grupo="PARTES"
+                        />
                     )}
                 </div>
             </div>

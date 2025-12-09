@@ -1,0 +1,246 @@
+/* ============================================
+   INVENTARIO PANEL STYLES
+   ============================================ */
+
+.inventario-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.inventario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.inventario-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.inventario-resumen {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.resumen-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+}
+
+/* Grupos */
+.inventario-grupos {
+    padding: 0.5rem;
+}
+
+.inventario-grupo {
+    margin-bottom: 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.grupo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.grupo-header:hover {
+    background: #e9ecef;
+}
+
+.grupo-icon {
+    font-size: 1.2rem;
+}
+
+.grupo-label {
+    flex: 1;
+    font-weight: 600;
+    color: #333;
+}
+
+.grupo-count {
+    font-size: 0.85rem;
+    color: #666;
+    background: #e0e0e0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.grupo-toggle {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+/* Items */
+.grupo-items {
+    padding: 0.5rem;
+}
+
+.inventario-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    background: #fafafa;
+    border-left: 4px solid #e0e0e0;
+    transition: all 0.2s ease;
+}
+
+.inventario-item:hover {
+    background: #f0f0f0;
+}
+
+.inventario-item.estado-pendiente {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+}
+
+.inventario-item.estado-subido {
+    border-left-color: #ffc107;
+    background: #fffbeb;
+}
+
+.inventario-item.estado-validado {
+    border-left-color: #28a745;
+    background: #f0fff4;
+}
+
+.inventario-item.estado-rechazado {
+    border-left-color: #6c757d;
+    background: #f8f9fa;
+}
+
+.item-estado {
+    font-size: 1.2rem;
+    min-width: 24px;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-titulo {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.item-titulo .obligatorio {
+    color: #dc3545;
+    margin-left: 0.25rem;
+}
+
+.item-descripcion {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+}
+
+.item-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.item-responsable {
+    background: #e9ecef;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+.item-fecha {
+    color: #28a745;
+}
+
+.item-rechazo {
+    color: #dc3545;
+}
+
+/* Acciones */
+.item-acciones {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-accion {
+    padding: 0.4rem 0.75rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-subir {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-subir:hover {
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+}
+
+.btn-validar {
+    background: #28a745;
+    color: white;
+}
+
+.btn-validar:hover {
+    background: #218838;
+}
+
+.btn-ver {
+    background: #e9ecef;
+    color: #333;
+}
+
+.btn-ver:hover {
+    background: #dee2e6;
+}
+
+/* Loading & Error */
+.inventario-loading,
+.inventario-error {
+    padding: 2rem;
+    text-align: center;
+    color: #666;
+}
+
+.inventario-loading .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -316,12 +316,12 @@ export default router;
 router.get('/', async (req: Request, res: Response) => {
     try {
         const { supabase } = await import('../config/supabase.js');
-        
+
         // Query parameters para paginación y filtros
         const limit = parseInt(req.query.limit as string) || 50;
         const offset = parseInt(req.query.offset as string) || 0;
         const estado = req.query.estado as string;
-        
+
         let query = supabase
             .from('contratos_arras')
             .select(`
@@ -336,30 +336,30 @@ router.get('/', async (req: Request, res: Response) => {
             `)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
-        
+
         if (estado) {
             query = query.eq('estado', estado);
         }
-        
+
         const { data: contratos, error } = await query;
-        
+
         if (error) throw error;
-        
+
         // Enriquecer con count de firmas
         const contratosEnriquecidos = await Promise.all(
             (contratos || []).map(async (contrato) => {
                 const { data: firmas } = await supabase
-                    .from('firmas_electronicas')
+                    .from('firmas_contrato')
                     .select('id', { count: 'exact' })
                     .eq('contrato_id', contrato.id);
-                
+
                 return {
                     ...contrato,
                     num_firmas: firmas?.length || 0
                 };
             })
         );
-        
+
         res.json({
             success: true,
             data: contratosEnriquecidos,
@@ -369,7 +369,7 @@ router.get('/', async (req: Request, res: Response) => {
                 count: contratosEnriquecidos.length
             }
         });
-        
+
     } catch (error: any) {
         console.error('Error al listar contratos:', error);
         res.status(500).json({

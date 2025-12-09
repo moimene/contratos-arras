@@ -37,7 +37,7 @@ router.post('/:contratoId', async (req: Request, res: Response) => {
         const full = await getContratoFull(req.params.contratoId);
 
         // Verificar que el borrador fue generado
-        if (full.contrato.estado !== 'BORRADOR_GENERADO') {
+        if (full.contrato.estado !== 'BORRADOR') {
             return res.status(400).json({
                 error: 'Debe generarse el borrador antes de firmar',
             });

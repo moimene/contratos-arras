@@ -1,0 +1,329 @@
+/* ImportarExterna.css */
+
+.importar-externa-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.importar-externa-modal {
+    background: linear-gradient(145deg, #1a1f2e, #151923);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.importar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    background: inherit;
+}
+
+.importar-header h3 {
+    margin: 0;
+    color: #f0f4f8;
+    font-size: 1.2rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.importar-info {
+    padding: 1rem 1.5rem;
+    background: rgba(66, 153, 225, 0.1);
+    border-left: 3px solid #4299e1;
+    margin: 1rem 1.5rem;
+    border-radius: 0 8px 8px 0;
+}
+
+.importar-info p {
+    margin: 0;
+    color: #a0d3ff;
+    font-size: 0.9rem;
+}
+
+.importar-form {
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    color: #a0aec0;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Canal options */
+.canal-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.canal-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #a0aec0;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 80px;
+}
+
+.canal-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.canal-btn.active {
+    background: rgba(66, 153, 225, 0.2);
+    border-color: #4299e1;
+    color: #63b3ed;
+}
+
+.canal-icon {
+    font-size: 1.5rem;
+}
+
+.canal-label {
+    font-size: 0.75rem;
+}
+
+/* Inputs */
+.importar-form input[type="text"],
+.importar-form input[type="datetime-local"],
+.importar-form select,
+.importar-form textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #f0f4f8;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.importar-form input:focus,
+.importar-form select:focus,
+.importar-form textarea:focus {
+    outline: none;
+    border-color: #4299e1;
+    background: rgba(66, 153, 225, 0.1);
+}
+
+.importar-form textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.importar-form small {
+    display: block;
+    margin-top: 0.35rem;
+    color: #718096;
+    font-size: 0.8rem;
+}
+
+.importar-form small .warning {
+    color: #ed8936;
+}
+
+/* Adjuntos */
+.adjuntos-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.adjuntos-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #a0aec0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.adjuntos-upload-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #4299e1;
+    color: #63b3ed;
+}
+
+.adjuntos-list {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.adjunto-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.adjunto-icon {
+    font-size: 1.2rem;
+}
+
+.adjunto-name {
+    flex: 1;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.adjunto-size {
+    color: #718096;
+    font-size: 0.8rem;
+}
+
+.adjunto-remove {
+    background: none;
+    border: none;
+    color: #e53e3e;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.adjunto-remove:hover {
+    background: rgba(229, 62, 62, 0.2);
+}
+
+/* Error */
+.importar-error {
+    padding: 0.75rem 1rem;
+    background: rgba(229, 62, 62, 0.15);
+    border: 1px solid rgba(229, 62, 62, 0.3);
+    border-radius: 8px;
+    color: #fc8181;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+/* Disclaimer */
+.importar-disclaimer {
+    padding: 0.75rem 1rem;
+    background: rgba(237, 137, 54, 0.1);
+    border-left: 3px solid #ed8936;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 1.25rem;
+}
+
+.importar-disclaimer p {
+    margin: 0;
+    color: #fbd38d;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+/* Actions */
+.importar-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-cancel {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #a0aec0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.btn-import {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #4299e1, #3182ce);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-import:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+}
+
+.btn-import:disabled,
+.btn-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

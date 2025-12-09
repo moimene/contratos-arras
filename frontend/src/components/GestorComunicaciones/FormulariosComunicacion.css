@@ -1,0 +1,289 @@
+/* FormulariosComunicacion.css - Estilos compartidos */
+
+.form-comunicacion-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 1rem;
+}
+
+.form-comunicacion-modal {
+    background: linear-gradient(145deg, #1a1f2e, #151923);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.form-comunicacion-modal.large {
+    max-width: 700px;
+}
+
+/* Headers por tipo */
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 10;
+}
+
+.form-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #f0f4f8;
+}
+
+.form-header.reclamacion {
+    border-bottom-color: rgba(245, 101, 101, 0.3);
+    background: linear-gradient(90deg, rgba(245, 101, 101, 0.1), transparent);
+}
+
+.form-header.solicitud {
+    border-bottom-color: rgba(66, 153, 225, 0.3);
+    background: linear-gradient(90deg, rgba(66, 153, 225, 0.1), transparent);
+}
+
+.form-header.convocatoria {
+    border-bottom-color: rgba(159, 122, 234, 0.3);
+    background: linear-gradient(90deg, rgba(159, 122, 234, 0.1), transparent);
+}
+
+.form-header .close-btn {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.form-header .close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Form */
+.form-comunicacion {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    color: #a0aec0;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Inputs */
+.form-comunicacion input[type="text"],
+.form-comunicacion input[type="number"],
+.form-comunicacion input[type="datetime-local"],
+.form-comunicacion select,
+.form-comunicacion textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #f0f4f8;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.form-comunicacion input:focus,
+.form-comunicacion select:focus,
+.form-comunicacion textarea:focus {
+    outline: none;
+    border-color: #4299e1;
+    background: rgba(66, 153, 225, 0.1);
+}
+
+.form-comunicacion textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-comunicacion small {
+    display: block;
+    margin-top: 0.35rem;
+    color: #718096;
+    font-size: 0.8rem;
+}
+
+/* Radio & Checkbox groups */
+.radio-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.radio-option,
+.checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: all 0.2s;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.radio-option:hover,
+.checkbox-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.radio-option input,
+.checkbox-option input {
+    accent-color: #4299e1;
+}
+
+.checkbox-option.urgente {
+    background: rgba(245, 101, 101, 0.1);
+    border-color: rgba(245, 101, 101, 0.3);
+    color: #fc8181;
+}
+
+.checkbox-option.urgente:hover {
+    background: rgba(245, 101, 101, 0.2);
+}
+
+/* Checkbox grid */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.5rem;
+}
+
+/* Error */
+.form-error {
+    padding: 0.75rem 1rem;
+    background: rgba(229, 62, 62, 0.15);
+    border: 1px solid rgba(229, 62, 62, 0.3);
+    border-radius: 8px;
+    color: #fc8181;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+/* Disclaimer */
+.form-disclaimer {
+    padding: 0.75rem 1rem;
+    background: rgba(66, 153, 225, 0.1);
+    border-left: 3px solid #4299e1;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 1.25rem;
+}
+
+.form-disclaimer.warning {
+    background: rgba(237, 137, 54, 0.1);
+    border-left-color: #ed8936;
+}
+
+.form-disclaimer p {
+    margin: 0;
+    color: #a0d3ff;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.form-disclaimer.warning p {
+    color: #fbd38d;
+}
+
+/* Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-cancel {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #a0aec0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.btn-enviar {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-enviar.reclamacion {
+    background: linear-gradient(135deg, #f56565, #c53030);
+}
+
+.btn-enviar.solicitud {
+    background: linear-gradient(135deg, #4299e1, #3182ce);
+}
+
+.btn-enviar.convocatoria {
+    background: linear-gradient(135deg, #9f7aea, #805ad5);
+}
+
+.btn-enviar:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-enviar:disabled,
+.btn-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

@@ -1,0 +1,272 @@
+/* DocumentosStep.css */
+
+.documentos-step {
+    background: linear-gradient(135deg, #f8fafc, #eef2f7);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+}
+
+.documentos-step.loading,
+.documentos-step.empty,
+.documentos-step.error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 80px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.documentos-step.error {
+    background: #fff5f5;
+    border-color: #fc8181;
+    color: #c53030;
+}
+
+.documentos-step.error button {
+    padding: 0.3rem 0.75rem;
+    background: #c53030;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.mini-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e2e8f0;
+    border-top: 2px solid #4a90d9;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Header */
+.docs-step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.docs-step-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.docs-icon {
+    font-size: 1.5rem;
+}
+
+.docs-step-title h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1a365d;
+}
+
+.docs-step-title p {
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    color: #718096;
+}
+
+.docs-step-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.progress-bar-mini {
+    width: 60px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill-mini {
+    height: 100%;
+    background: linear-gradient(90deg, #4a90d9, #38a169);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.progress-text-mini {
+    font-size: 0.75rem;
+    color: #718096;
+    font-weight: 500;
+}
+
+/* Document List */
+.docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.doc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    border-left: 3px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.doc-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.doc-item.pendiente {
+    border-left-color: #f6ad55;
+}
+
+.doc-item.subido {
+    border-left-color: #4299e1;
+}
+
+.doc-item.validado {
+    border-left-color: #48bb78;
+}
+
+.doc-item.rechazado {
+    border-left-color: #fc8181;
+}
+
+.doc-item-icon {
+    font-size: 1.2rem;
+    width: 28px;
+    text-align: center;
+}
+
+.doc-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.doc-item-titulo {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.req-badge {
+    color: #e53e3e;
+    font-weight: 700;
+}
+
+.doc-item-file {
+    font-size: 0.8rem;
+    color: #718096;
+    margin-top: 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.file-size {
+    color: #a0aec0;
+}
+
+.doc-item-desc {
+    font-size: 0.75rem;
+    color: #a0aec0;
+    margin-top: 0.2rem;
+    font-style: italic;
+}
+
+.doc-item-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.btn-mini {
+    padding: 0.4rem 0.6rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.btn-mini.upload {
+    background: linear-gradient(135deg, #4a90d9, #357abd);
+    color: white;
+}
+
+.btn-mini.upload:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(74, 144, 217, 0.4);
+}
+
+.btn-mini.preview {
+    background: #edf2f7;
+    color: #4a5568;
+}
+
+.btn-mini.preview:hover {
+    background: #e2e8f0;
+}
+
+.btn-mini.download {
+    background: #e6fffa;
+    color: #234e52;
+}
+
+.btn-mini.download:hover {
+    background: #b2f5ea;
+}
+
+/* Footer */
+.docs-step-footer {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.pending-notice {
+    font-size: 0.8rem;
+    color: #dd6b20;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .docs-step-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .doc-item {
+        flex-wrap: wrap;
+    }
+
+    .doc-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+    }
+}

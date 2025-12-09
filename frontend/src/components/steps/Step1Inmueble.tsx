@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useContract } from '../../context/ContractContext';
 import { isTerritorioForal, getForalRegion, getForalRegionDisplayName, getForalImplications } from '../../utils/foralTerritories';
+import DocumentosStep from '../GestorDocumental/DocumentosStep';
 
 interface Anexo {
     id?: string;
@@ -16,7 +17,7 @@ interface Anexo {
 }
 
 export const Step1Inmueble: React.FC = () => {
-    const { inmueble, updateInmueble, setCurrentStep, contrato } = useContract();
+    const { inmueble, updateInmueble, setCurrentStep, contrato, contratoId } = useContract();
 
     const [formData, setFormData] = useState({
         // Ubicación básica
@@ -540,6 +541,14 @@ export const Step1Inmueble: React.FC = () => {
                         <p className="text-muted">Completa los datos para ver el resumen</p>
                     )}
                 </div>
+
+                {/* Documentos del inmueble */}
+                {contratoId && (
+                    <DocumentosStep
+                        contratoId={contratoId}
+                        grupo="INMUEBLE"
+                    />
+                )}
             </div>
         </div>
     );

@@ -308,7 +308,180 @@ class NotariaService {
     // MÉTODOS PRIVADOS
     // ================================================
 
+    /**
+     * Genera el inventario de documentos para fase NOTARIA
+     * usando la función SQL generar_inventario_notaria()
+     * 
+     * @param contratoId - ID del contrato
+     * @param datosContrato - Datos del contrato con condiciones modulares
+     * @returns Número de items creados
+     */
+    async generarInventarioNotaria(contratoId: string, datosContrato?: any): Promise<number> {
+        // Obtener datos del contrato si no se proporcionan
+        if (!datosContrato) {
+            const { data: contrato } = await supabase
+                .from('contratos_arras')
+                .select('*, datos_wizard')
+                .eq('id', contratoId)
+                .single();
+
+            // Extraer condiciones del datos_wizard o del contrato directamente
+            datosContrato = contrato?.datos_wizard?.contrato || contrato || {};
+        }
+
+        // Preparar JSON de condiciones para la función SQL
+        const condiciones = {
+            sinHipoteca: datosContrato.sinHipoteca ?? true,
+            sinArrendatarios: datosContrato.sinArrendatarios ?? true,
+            mobiliarioEquipamiento: datosContrato.mobiliarioEquipamiento ?? false,
+            escrow: datosContrato.escrow ?? false,
+            derecho: datosContrato.derecho ?? 'COMUN',
+            retenciones: datosContrato.retenciones ?? { activa: false },
+            subrogacionArrendamiento: datosContrato.subrogacionArrendamiento ?? false,
+        };
+
+        // Llamar función SQL
+        const { data, error } = await supabase.rpc('generar_inventario_notaria', {
+            p_contrato_id: contratoId,
+            p_datos_contrato: condiciones
+        });
+
+        if (error) {
+            console.error('Error generando inventario notaría:', error);
+            // Fallback: crear items manualmente
+            return await this.generarInventarioNotariaManual(contratoId, condiciones);
+        }
+
+        console.log(`✅ Generados ${data} items de inventario NOTARIA para contrato ${contratoId}`);
+        return data || 0;
+    }
+
+    /**
+     * Fallback manual si la función SQL no existe
+     */
+    private async generarInventarioNotariaManual(contratoId: string, condiciones: any): Promise<number> {
+        const items: any[] = [
+            // Documentos BASE (siempre)
+            { tipo: 'MINUTA_ESCRITURA', titulo: 'Minuta de escritura', responsable_rol: 'PLATAFORMA', obligatorio: true },
+            { tipo: 'CONVOCATORIA_NOTARIA', titulo: 'Convocatoria a notaría', responsable_rol: 'ASESOR_COMPRADOR', obligatorio: true },
+            { tipo: 'DOC_IDENTIDAD_COMPRADOR', titulo: 'Documentación de identidad - Parte compradora', responsable_rol: 'COMPRADOR', obligatorio: true },
+            { tipo: 'DOC_IDENTIDAD_VENDEDOR', titulo: 'Documentación de identidad - Parte vendedora', responsable_rol: 'VENDEDOR', obligatorio: true },
+            { tipo: 'ESCRITURA_ANTERIOR', titulo: 'Título de propiedad del transmitente', responsable_rol: 'VENDEDOR', obligatorio: true },
+            { tipo: 'NOTA_SIMPLE', titulo: 'Nota simple vigente', responsable_rol: 'VENDEDOR', obligatorio: true },
+            { tipo: 'IBI', titulo: 'Recibo IBI último ejercicio', responsable_rol: 'VENDEDOR', obligatorio: true },
+            { tipo: 'CERTIFICADO_COMUNIDAD', titulo: 'Certificado de comunidad (deudas)', responsable_rol: 'VENDEDOR', obligatorio: true },
+            { tipo: 'CEE', titulo: 'Certificado de eficiencia energética', responsable_rol: 'VENDEDOR', obligatorio: true },
+            { tipo: 'CONTRATO_ARRAS_FIRMADO', titulo: 'Contrato de arras firmado', responsable_rol: 'PLATAFORMA', obligatorio: true },
+            { tipo: 'JUSTIFICANTE_ARRAS', titulo: 'Justificante de pago de arras', responsable_rol: 'COMPRADOR', obligatorio: true },
+            { tipo: 'MEDIOS_PAGO_RESTO_PRECIO', titulo: 'Medios de pago del resto del precio', responsable_rol: 'COMPRADOR', obligatorio: true },
+        ];
+
+        // Documentos CONDICIONALES
+        if (condiciones.sinHipoteca === false) {
+            items.push({ tipo: 'DOC_CANCELACION_HIPOTECA', titulo: 'Cancelación de hipoteca / Carta de pago', responsable_rol: 'VENDEDOR', obligatorio: true });
+        }
+
+        if (condiciones.sinArrendatarios === false) {
+            items.push({ tipo: 'DOC_ARRENDAMIENTO', titulo: 'Documentación arrendamiento', responsable_rol: 'VENDEDOR', obligatorio: true });
+        }
+
+        if (condiciones.subrogacionArrendamiento === true) {
+            items.push({ tipo: 'ACUERDO_SUBROGACION', titulo: 'Acuerdo de subrogación arrendamiento', responsable_rol: 'VENDEDOR', obligatorio: true });
+        }
+
+        if (condiciones.mobiliarioEquipamiento === true) {
+            items.push({ tipo: 'INVENTARIO_MOBILIARIO', titulo: 'Inventario de mobiliario/equipamiento', responsable_rol: 'VENDEDOR', obligatorio: true });
+        }
+
+        if (condiciones.retenciones?.activa === true) {
+            items.push({ tipo: 'RETENCIONES_EN_PRECIO', titulo: 'Retenciones/provisiones en precio', responsable_rol: 'ASESOR_VENDEDOR', obligatorio: true });
+        }
+
+        if (condiciones.escrow === true) {
+            items.push({ tipo: 'DOC_DEPOSITO_ESCROW', titulo: 'Depósito notarial / Escrow', responsable_rol: 'COMPRADOR', obligatorio: true });
+        }
+
+        if (condiciones.derecho?.startsWith('FORAL_')) {
+            items.push({ tipo: 'DOC_ADECUACION_FORAL', titulo: 'Documentación territorio foral', responsable_rol: 'ASESOR_VENDEDOR', obligatorio: true });
+        }
+
+        // Insertar en inventario_expediente
+        let count = 0;
+        for (const item of items) {
+            const { error } = await supabase
+                .from('inventario_expediente')
+                .upsert({
+                    contrato_id: contratoId,
+                    tipo: item.tipo,
+                    titulo: item.titulo,
+                    grupo: 'NOTARIA',
+                    responsable_rol: item.responsable_rol,
+                    obligatorio: item.obligatorio,
+                    estado: 'PENDIENTE',
+                }, {
+                    onConflict: 'contrato_id,tipo',
+                    ignoreDuplicates: true
+                });
+
+            if (!error) count++;
+        }
+
+        console.log(`✅ Generados ${count} items de inventario NOTARIA (fallback manual)`);
+        return count;
+    }
+
+    /**
+     * Obtiene el inventario de documentos del grupo NOTARIA
+     */
+    async obtenerInventarioNotaria(contratoId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('inventario_expediente')
+            .select('*')
+            .eq('contrato_id', contratoId)
+            .in('grupo', ['NOTARIA', 'POST_FIRMA'])
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error obteniendo inventario notaría:', error);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    /**
+     * Obtiene el estado del inventario NOTARIA
+     */
+    async obtenerEstadoInventarioNotaria(contratoId: string): Promise<any> {
+        const items = await this.obtenerInventarioNotaria(contratoId);
+
+        const total = items.length;
+        const obligatorios = items.filter(i => i.obligatorio).length;
+        const pendientes = items.filter(i => i.estado === 'PENDIENTE').length;
+        const subidos = items.filter(i => i.estado === 'SUBIDO').length;
+        const validados = items.filter(i => i.estado === 'VALIDADO').length;
+        const rechazados = items.filter(i => i.estado === 'RECHAZADO').length;
+
+        const completo = items
+            .filter(i => i.obligatorio)
+            .every(i => i.estado === 'VALIDADO');
+
+        return {
+            contrato_id: contratoId,
+            total,
+            obligatorios,
+            pendientes,
+            subidos,
+            validados,
+            rechazados,
+            completo,
+            porcentaje: total > 0 ? Math.round((validados / obligatorios) * 100) : 0
+        };
+    }
+
     private async crearChecklistPorDefecto(contratoId: string, citaId: string): Promise<void> {
+        // DEPRECADO: Usar generarInventarioNotaria() en su lugar
+        // Mantenido por compatibilidad con código existente
         const itemsDefecto = [
             // Comprador
             { descripcion: 'DNI/NIE o Pasaporte', categoria: 'COMPRADOR', obligatorio: true },
