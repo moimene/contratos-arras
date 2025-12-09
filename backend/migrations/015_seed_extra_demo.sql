@@ -18,10 +18,10 @@ INSERT INTO inmuebles (id, direccion_completa, codigo_postal, ciudad, provincia,
 ('d8888888-8888-8888-8888-888888888888', 'Paseo Pereda 12', '39004', 'Santander', 'Cantabria', 'CT6690S0008IJ'),
 ('d9999999-9999-9999-9999-999999999999', 'Calle Alfonso X 33, 4ºC', '30008', 'Murcia', 'Murcia', 'MU7701T0009KL'),
 ('daaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Gran Vía 66, 2ºD', '50005', 'Zaragoza', 'Zaragoza', 'ZA8812U0010MN'),
-('dbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Calle Estafeta 42', '31001', 'Pamplona', 'Navarra', 'NA9923V0011OP'),
+('dbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Calle Estafeta 42', '31001', 'Pamplona', 'Navarra', 'NA9923V0011OP'),
 ('dccccccc-cccc-cccc-cccc-cccccccccccc', 'Paseo Independencia 5', '26001', 'Logroño', 'La Rioja', 'LR1034W0012QR'),
 ('dddddddd-1111-1111-1111-111111111111', 'Plaza Quintana 8, 1º', '15704', 'Santiago', 'A Coruña', 'SG2145X0013ST'),
-('deeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Calle Comercio 23', '45001', 'Toledo', 'Toledo', 'TO3256Y0014UV'),
+('deeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Calle Comercio 23', '45001', 'Toledo', 'Toledo', 'TO3256Y0014UV'),
 ('dfffffff-ffff-ffff-ffff-ffffffffffff', 'Avenida Ensanche 77, 6ºA', '15402', 'Ferrol', 'A Coruña', 'FE4367Z0015WX');
 
 -- CONTRATOS ADICIONALES (15 - en estados avanzados)
@@ -48,12 +48,12 @@ INSERT INTO contratos_arras (
 ('c0000030-0000-0000-0000-000000000030', 'CFA-2025-000030', 'daaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'NO_COMPARECENCIA', 'PENALES', 515000, 51500, 10.00, 'EUR', '2025-12-03', 'AL_FIRMAR', 'hash030', 1, false, '{}', NOW() - INTERVAL '6 days'),
 
 -- TERMINADO (3 contratos - cierre completo)
-('c0000031-0000-0000-0000-000000000031', 'CFA-2025-000031', 'dbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'TERMINADO', 'PENITENCIALES', 275000, 27500, 10.00, 'EUR', '2025-09-15', 'POSTERIOR', 'hash031', 1, true, '{}', NOW() - INTERVAL '60 days'),
+('c0000031-0000-0000-0000-000000000031', 'CFA-2025-000031', 'dbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'TERMINADO', 'PENITENCIALES', 275000, 27500, 10.00, 'EUR', '2025-09-15', 'POSTERIOR', 'hash031', 1, true, '{}', NOW() - INTERVAL '60 days'),
 ('c0000032-0000-0000-0000-000000000032', 'CFA-2025-000032', 'dccccccc-cccc-cccc-cccc-cccccccccccc', 'TERMINADO', 'CONFIRMATORIAS', 185000, 18500, 10.00, 'EUR', '2025-08-20', 'AL_FIRMAR', 'hash032', 1, true, '{}', NOW() - INTERVAL '90 days'),
 ('c0000033-0000-0000-0000-000000000033', 'CFA-2025-000033', 'dddddddd-1111-1111-1111-111111111111', 'TERMINADO', 'PENALES', 625000, 62500, 10.00, 'EUR', '2025-07-10', 'POSTERIOR', 'hash033', 1, false, '{}', NOW() - INTERVAL '120 days'),
 
 -- LITIGIO (2 contratos - en disputa)
-('c0000034-0000-0000-0000-000000000034', 'CFA-2025-000034', 'deeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'LITIGIO', 'PENITENCIALES', 340000, 34000, 10.00, 'EUR', '2025-11-01', 'AL_FIRMAR', 'hash034', 1, true, '{}', NOW() - INTERVAL '40 days'),
+('c0000034-0000-0000-0000-000000000034', 'CFA-2025-000034', 'deeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'LITIGIO', 'PENITENCIALES', 340000, 34000, 10.00, 'EUR', '2025-11-01', 'AL_FIRMAR', 'hash034', 1, true, '{}', NOW() - INTERVAL '40 days'),
 ('c0000035-0000-0000-0000-000000000035', 'CFA-2025-000035', 'dfffffff-ffff-ffff-ffff-ffffffffffff', 'LITIGIO', 'CONFIRMATORIAS', 420000, 42000, 10.00, 'EUR', '2025-10-20', 'POSTERIOR', 'hash035', 1, true, '{}', NOW() - INTERVAL '50 days');
 
 -- PARTES ADICIONALES (15 compradores + 15 vendedores)
