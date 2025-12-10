@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EidasBadge } from '../../components/branding/TrustBadges';
+import Navbar from '../../components/layout/Navbar';
 import './ExpedientesList.css';
 
 interface Expediente {
@@ -101,133 +102,136 @@ export default function ExpedientesList() {
     }
 
     return (
-        <div className="expedientes-container">
-            {/* Header */}
-            <header className="expedientes-header">
-                <div className="header-content">
-                    <div className="header-left">
-                        <div className="header-title-row">
-                            <EidasBadge size="small" />
-                            <h1>Mis Expedientes de Arras</h1>
+        <>
+            <Navbar />
+            <div className="expedientes-container">
+                {/* Header */}
+                <header className="expedientes-header">
+                    <div className="header-content">
+                        <div className="header-left">
+                            <div className="header-title-row">
+                                <EidasBadge size="small" />
+                                <h1>Mis Expedientes de Arras</h1>
+                            </div>
+                            <p className="subtitle">{expedientes.length} expediente{expedientes.length !== 1 ? 's' : ''} en total</p>
                         </div>
-                        <p className="subtitle">{expedientes.length} expediente{expedientes.length !== 1 ? 's' : ''} en total</p>
+                        <div className="header-right">
+                            <button
+                                onClick={() => navigate('/wizard/nuevo')}
+                                className="btn-primary btn-new-expediente"
+                            >
+                                <span className="btn-icon">➕</span>
+                                Nuevo Expediente
+                            </button>
+                        </div>
                     </div>
-                    <div className="header-right">
+
+                    {/* Filtros */}
+                    <div className="expedientes-filtros">
                         <button
-                            onClick={() => navigate('/wizard/nuevo')}
-                            className="btn-primary btn-new-expediente"
+                            className={`filtro-btn ${!filtroEstado ? 'active' : ''}`}
+                            onClick={() => setFiltroEstado('')}
                         >
-                            <span className="btn-icon">➕</span>
-                            Nuevo Expediente
+                            Todos
+                        </button>
+                        <button
+                            className={`filtro-btn ${filtroEstado === 'BORRADOR' ? 'active' : ''}`}
+                            onClick={() => setFiltroEstado('BORRADOR')}
+                        >
+                            Pendientes Firma
+                        </button>
+                        <button
+                            className={`filtro-btn ${filtroEstado === 'FIRMADO' ? 'active' : ''}`}
+                            onClick={() => setFiltroEstado('FIRMADO')}
+                        >
+                            Firmados
+                        </button>
+                        <button
+                            className={`filtro-btn ${filtroEstado === 'NOTARIA' ? 'active' : ''}`}
+                            onClick={() => setFiltroEstado('NOTARIA')}
+                        >
+                            En Notaría
+                        </button>
+                        <button
+                            className={`filtro-btn ${filtroEstado === 'LITIGIO' ? 'active' : ''}`}
+                            onClick={() => setFiltroEstado('LITIGIO')}
+                        >
+                            En Litigio
                         </button>
                     </div>
-                </div>
+                </header>
 
-                {/* Filtros */}
-                <div className="expedientes-filtros">
-                    <button
-                        className={`filtro-btn ${!filtroEstado ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('')}
-                    >
-                        Todos
-                    </button>
-                    <button
-                        className={`filtro-btn ${filtroEstado === 'BORRADOR' ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('BORRADOR')}
-                    >
-                        Pendientes Firma
-                    </button>
-                    <button
-                        className={`filtro-btn ${filtroEstado === 'FIRMADO' ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('FIRMADO')}
-                    >
-                        Firmados
-                    </button>
-                    <button
-                        className={`filtro-btn ${filtroEstado === 'NOTARIA' ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('NOTARIA')}
-                    >
-                        En Notaría
-                    </button>
-                    <button
-                        className={`filtro-btn ${filtroEstado === 'LITIGIO' ? 'active' : ''}`}
-                        onClick={() => setFiltroEstado('LITIGIO')}
-                    >
-                        En Litigio
-                    </button>
-                </div>
-            </header>
-
-            {/* Lista de expedientes */}
-            {expedientes.length === 0 ? (
-                <div className="expedientes-empty">
-                    <div className="empty-icon">📁</div>
-                    <h3>No hay expedientes</h3>
-                    <p>Crea tu primer expediente de arras haciendo clic en "Nuevo Expediente"</p>
-                    <button
-                        onClick={() => navigate('/wizard/nuevo')}
-                        className="btn-primary"
-                    >
-                        Crear Primer Expediente
-                    </button>
-                </div>
-            ) : (
-                <div className="expedientes-table-wrapper">
-                    <table className="expedientes-table">
-                        <thead>
-                            <tr>
-                                <th>Expediente</th>
-                                <th>Inmueble</th>
-                                <th>Estado</th>
-                                <th>Tipo Arras</th>
-                                <th>Precio</th>
-                                <th>Arras</th>
-                                <th>Firmas</th>
-                                <th>Fecha</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {expedientes.map((exp) => (
-                                <tr key={exp.id} className="expediente-row">
-                                    <td className="col-expediente">
-                                        <strong>{exp.numero_expediente}</strong>
-                                    </td>
-                                    <td className="col-inmueble">
-                                        <div className="inmueble-info">
-                                            <div className="inmueble-direccion">{exp.inmueble?.direccion_completa || 'N/A'}</div>
-                                            <div className="inmueble-ciudad">{exp.inmueble?.ciudad || ''}</div>
-                                        </div>
-                                    </td>
-                                    <td className="col-estado">
-                                        <span className={`estado-badge ${getEstadoBadgeClass(exp.estado)}`}>
-                                            {getEstadoTexto(exp.estado)}
-                                        </span>
-                                    </td>
-                                    <td className="col-tipo">{exp.tipo_arras}</td>
-                                    <td className="col-precio">{exp.precio_total.toLocaleString('es-ES')} €</td>
-                                    <td className="col-arras">{exp.importe_arras.toLocaleString('es-ES')} €</td>
-                                    <td className="col-firmas">
-                                        <span className="firmas-badge">{exp.num_firmas} ✍️</span>
-                                    </td>
-                                    <td className="col-fecha">
-                                        {new Date(exp.created_at).toLocaleDateString('es-ES')}
-                                    </td>
-                                    <td className="col-acciones">
-                                        <button
-                                            onClick={() => navigate(`/dashboard/contrato/${exp.id}`)}
-                                            className="btn-action btn-view"
-                                            title="Ver Dashboard"
-                                        >
-                                            👁️ Ver
-                                        </button>
-                                    </td>
+                {/* Lista de expedientes */}
+                {expedientes.length === 0 ? (
+                    <div className="expedientes-empty">
+                        <div className="empty-icon">📁</div>
+                        <h3>No hay expedientes</h3>
+                        <p>Crea tu primer expediente de arras haciendo clic en "Nuevo Expediente"</p>
+                        <button
+                            onClick={() => navigate('/wizard/nuevo')}
+                            className="btn-primary"
+                        >
+                            Crear Primer Expediente
+                        </button>
+                    </div>
+                ) : (
+                    <div className="expedientes-table-wrapper">
+                        <table className="expedientes-table">
+                            <thead>
+                                <tr>
+                                    <th>Expediente</th>
+                                    <th>Inmueble</th>
+                                    <th>Estado</th>
+                                    <th>Tipo Arras</th>
+                                    <th>Precio</th>
+                                    <th>Arras</th>
+                                    <th>Firmas</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
+                            </thead>
+                            <tbody>
+                                {expedientes.map((exp) => (
+                                    <tr key={exp.id} className="expediente-row">
+                                        <td className="col-expediente">
+                                            <strong>{exp.numero_expediente}</strong>
+                                        </td>
+                                        <td className="col-inmueble">
+                                            <div className="inmueble-info">
+                                                <div className="inmueble-direccion">{exp.inmueble?.direccion_completa || 'N/A'}</div>
+                                                <div className="inmueble-ciudad">{exp.inmueble?.ciudad || ''}</div>
+                                            </div>
+                                        </td>
+                                        <td className="col-estado">
+                                            <span className={`estado-badge ${getEstadoBadgeClass(exp.estado)}`}>
+                                                {getEstadoTexto(exp.estado)}
+                                            </span>
+                                        </td>
+                                        <td className="col-tipo">{exp.tipo_arras}</td>
+                                        <td className="col-precio">{exp.precio_total.toLocaleString('es-ES')} €</td>
+                                        <td className="col-arras">{exp.importe_arras.toLocaleString('es-ES')} €</td>
+                                        <td className="col-firmas">
+                                            <span className="firmas-badge">{exp.num_firmas} ✍️</span>
+                                        </td>
+                                        <td className="col-fecha">
+                                            {new Date(exp.created_at).toLocaleDateString('es-ES')}
+                                        </td>
+                                        <td className="col-acciones">
+                                            <button
+                                                onClick={() => navigate(`/dashboard/contrato/${exp.id}`)}
+                                                className="btn-action btn-view"
+                                                title="Ver Dashboard"
+                                            >
+                                                👁️ Ver
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </>
     );
 }

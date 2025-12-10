@@ -12,6 +12,7 @@ import CertificadoEventos from '../../components/CertificadoEventos/CertificadoE
 import ChecklistNotaria from '../../components/notaria/ChecklistNotaria';
 import { FirmaElectronica } from '../../components/firma/FirmaElectronica';
 import { EidasBadge } from '../../components/branding/TrustBadges';
+import Navbar from '../../components/layout/Navbar';
 
 interface ContratoData {
     id: string;
@@ -178,71 +179,74 @@ export default function ContratoDashboard({
     }
 
     return (
-        <div className="contrato-dashboard">
-            {/* Header */}
-            <header className="dashboard-header">
-                <div className="header-content">
-                    <div className="header-title">
-                        <EidasBadge size="small" />
-                        <h1>Expediente {contrato.numero_expediente}</h1>
-                        <EstadoBadge estado={contrato.estado} />
+        <>
+            <Navbar />
+            <div className="contrato-dashboard">
+                {/* Header */}
+                <header className="dashboard-header">
+                    <div className="header-content">
+                        <div className="header-title">
+                            <EidasBadge size="small" />
+                            <h1>Expediente {contrato.numero_expediente}</h1>
+                            <EstadoBadge estado={contrato.estado} />
+                        </div>
+                        <div className="header-actions">
+                            <button onClick={handleVolverWizard} className="btn-secondary">
+                                ← Volver al Wizard
+                            </button>
+                        </div>
                     </div>
-                    <div className="header-actions">
-                        <button onClick={handleVolverWizard} className="btn-secondary">
-                            ← Volver al Wizard
-                        </button>
-                    </div>
-                </div>
-            </header>
+                </header>
 
-            {/* Layout de 2 columnas */}
-            <div className="dashboard-layout">
-                {/* Sidebar izquierda */}
-                <aside className="sidebar-left">
-                    <ResumenContrato contrato={contrato} />
+                {/* Layout de 2 columnas */}
+                <div className="dashboard-layout">
+                    {/* Sidebar izquierda */}
+                    <aside className="sidebar-left">
+                        <ResumenContrato contrato={contrato} />
 
-                    {/* Gestor Documental completo */}
-                    <GestorDocumental contratoId={contrato.id} rolActual="ADMIN" />
-                </aside>
+                        {/* Gestor Documental completo */}
+                        <GestorDocumental contratoId={contrato.id} rolActual="ADMIN" />
+                    </aside>
 
-                {/* Contenido principal */}
-                <main className="main-content">
-                    {/* Alerta de transición de estado */}
-                    <StateAlert contratoId={contrato.id} currentState={contrato.estado} />
+                    {/* Contenido principal */}
+                    <main className="main-content">
+                        {/* Alerta de transición de estado */}
+                        <StateAlert contratoId={contrato.id} currentState={contrato.estado} />
 
-                    {/* Panel de Próximas Acciones */}
-                    <ProximasAcciones
-                        contratoId={contrato.id}
-                        estado={contrato.estado}
-                        firmasCompletas={contrato.estado === 'FIRMADO' || contrato.estado === 'CONVOCATORIA_NOTARIAL'}
-                    />
-
-                    {/* Panel de Firma Electrónica - Visible en BORRADOR e INICIADO */}
-                    {['INICIADO', 'BORRADOR'].includes(contrato.estado) && (
-                        <FirmaElectronica
+                        {/* Panel de Próximas Acciones */}
+                        <ProximasAcciones
                             contratoId={contrato.id}
-                            onFirmaCompletada={fetchContratoData}
-                            onTodasFirmasCompletas={fetchContratoData}
+                            estado={contrato.estado}
+                            firmasCompletas={contrato.estado === 'FIRMADO' || contrato.estado === 'CONVOCATORIA_NOTARIAL'}
                         />
-                    )}
 
-                    {/* Checklist Notaría - Visible en fase NOTARIA o posterior */}
-                    {['FIRMADO', 'CONVOCATORIA_NOTARIAL', 'NOTARIA', 'ESCRITURA_OTORGADA', 'NO_COMPARECENCIA'].includes(contrato.estado) && (
-                        <ChecklistNotaria contratoId={contrato.id} />
-                    )}
+                        {/* Panel de Firma Electrónica - Visible en BORRADOR e INICIADO */}
+                        {['INICIADO', 'BORRADOR'].includes(contrato.estado) && (
+                            <FirmaElectronica
+                                contratoId={contrato.id}
+                                onFirmaCompletada={fetchContratoData}
+                                onTodasFirmasCompletas={fetchContratoData}
+                            />
+                        )}
 
-                    <TimelineEvento eventos={contrato.eventos || []} />
+                        {/* Checklist Notaría - Visible en fase NOTARIA o posterior */}
+                        {['FIRMADO', 'CONVOCATORIA_NOTARIAL', 'NOTARIA', 'ESCRITURA_OTORGADA', 'NO_COMPARECENCIA'].includes(contrato.estado) && (
+                            <ChecklistNotaria contratoId={contrato.id} />
+                        )}
 
-                    {/* Gestor de Comunicaciones */}
-                    <GestorComunicaciones contratoId={contrato.id} rolActual="ADMIN" />
+                        <TimelineEvento eventos={contrato.eventos || []} />
 
-                    {/* Certificado de Eventos */}
-                    <CertificadoEventos contratoId={contrato.id} />
+                        {/* Gestor de Comunicaciones */}
+                        <GestorComunicaciones contratoId={contrato.id} rolActual="ADMIN" />
 
-                    {/* Chat Panel */}
-                    <ChatPanel contratoId={contrato.id} />
-                </main>
+                        {/* Certificado de Eventos */}
+                        <CertificadoEventos contratoId={contrato.id} />
+
+                        {/* Chat Panel */}
+                        <ChatPanel contratoId={contrato.id} />
+                    </main>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

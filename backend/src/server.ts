@@ -22,6 +22,8 @@ import communicationsRoutes from './routes/communications.js';
 import certificateRoutes from './routes/certificate.js';
 import notificationRoutes from './routes/notification.js';
 import inboundRoutes from './routes/inbound.js';
+import profileRoutes from './routes/profile.js';
+import organizationRoutes from './routes/organization.js';
 
 const app = express();
 
@@ -88,6 +90,8 @@ app.use('/api/contratos', communicationsRoutes);  // Gestor de Comunicaciones
 app.use('/api/contratos', certificateRoutes);  // Certificado de Eventos
 app.use('/api/notifications', notificationRoutes);  // Webhooks n8n salientes
 app.use('/api/inbound', inboundRoutes);  // Recepción de comunicaciones (emails, webhooks)
+app.use('/api/profile', profileRoutes);  // Perfil de usuario
+app.use('/api/organization', organizationRoutes);  // Gestión de organización
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Error:', err);

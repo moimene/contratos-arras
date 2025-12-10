@@ -12,6 +12,9 @@ import { Step5Borrador } from './components/steps/Step5Borrador';
 import { Step6Firma } from './components/steps/Step6Firma';
 import ContratoDashboard from './pages/Dashboard/ContratoDashboard';
 import ExpedientesList from './pages/ExpedientesList/ExpedientesList';
+import UserProfile from './pages/Profile/UserProfile';
+import OrganizationSettings from './pages/Organization/OrganizationSettings';
+import TeamManagement from './pages/Organization/TeamManagement';
 import { TrustBadges, EidasBadge } from './components/branding/TrustBadges';
 import './index.css';
 
@@ -115,6 +118,11 @@ function App() {
             {/* Dashboard - Gestión de Expediente */}
             <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
             <Route path="/dashboard/:contratoId" element={<ContratoDashboard />} />
+
+            {/* User Management */}
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/organization" element={<OrganizationSettings />} />
+            <Route path="/organization/team" element={<TeamManagement />} />
 
             {/* Redirect de rutas desconocidas */}
             <Route path="*" element={<Navigate to="/" replace />} />
