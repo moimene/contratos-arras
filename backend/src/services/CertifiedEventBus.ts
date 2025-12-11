@@ -14,7 +14,7 @@
 
 import { createHash } from 'crypto';
 import stringify from 'json-stable-stringify';
-import { supabase } from '../config/supabase';
+import { supabase } from '../config/supabase.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // =====================================================

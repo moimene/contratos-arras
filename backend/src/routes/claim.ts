@@ -8,8 +8,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { supabase } from '../config/supabase';
-import { certifiedEventBus } from '../services/CertifiedEventBus';
+import { supabase } from '../config/supabase.js';
+import { certifiedEventBus } from '../services/CertifiedEventBus.js';
 
 const router = Router();
 

@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '../config/supabase.js';
-import { qtspService, calcularHash } from './qtspService';
+import { qtspService, calcularHash } from './qtspService.js';
 
 // ================================================
 // TIPOS

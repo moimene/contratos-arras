@@ -7,7 +7,7 @@
  *                                LITIGIO → TERMINADO
  */
 
-import type { EstadoContrato } from '../types/models';
+import type { EstadoContrato } from '../types/models.js';
 
 /**
  * Máquina de estados válida

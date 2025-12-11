@@ -5,7 +5,7 @@
  */
 
 import express, { Request, Response } from 'express';
-import { actaService } from '../services/actaService';
+import { actaService } from '../services/actaService.js';
 
 const router = express.Router();
 
