@@ -118,8 +118,8 @@ export default function ProximasAcciones({ contratoId, estado, firmasCompletas }
                 {acciones.map((accion, idx) => (
                     <div
                         key={idx}
-                        className={`accion-card ${accion.disabled ? 'disabled' : ''} ${accion.primary ? 'primary' : ''}`}
-                        onClick={accion.disabled ? undefined : accion.accion}
+                        className={`accion-card ${accion.disabled ? 'disabled' : ''} ${'primary' in accion && accion.primary ? 'primary' : ''}`}
+                        onClick={accion.disabled || !accion.accion ? undefined : accion.accion}
                         style={{ cursor: accion.disabled ? 'not-allowed' : 'pointer' }}
                     >
                         <div className="accion-icon">{accion.icon}</div>

@@ -291,7 +291,7 @@ export const generateTerminosHTML = (data: ContractData): string => {
   // ============================================
 
   // Cláusula 1.1 - Objeto (varía según tipo de arras)
-  const clausula1_1_texto = ICADE.CLAUSULA_1['1.1'][`texto_${tipoArras}`] || ICADE.CLAUSULA_1['1.1'].texto_PENITENCIALES;
+  const clausula1_1_texto = (ICADE.CLAUSULA_1['1.1'] as any)[`texto_${tipoArras}`] || ICADE.CLAUSULA_1['1.1'].texto_PENITENCIALES;
 
   // Cláusula 1.3 - Estado del inmueble (varía para NO_VIVIENDA)
   let clausula1_3_html = '';
@@ -326,7 +326,7 @@ export const generateTerminosHTML = (data: ContractData): string => {
   } else {
     const clausula2_2_pago = formaPago === 'AL_FIRMAR'
       ? ICADE.CLAUSULA_2['2.2'].opcion_AL_FIRMAR
-      : ICADE.CLAUSULA_2['2.2'][`opcion_POSTERIOR_${tipoArras}`] || ICADE.CLAUSULA_2['2.2'].opcion_POSTERIOR_PENITENCIALES;
+      : (ICADE.CLAUSULA_2['2.2'] as any)[`opcion_POSTERIOR_${tipoArras}`] || ICADE.CLAUSULA_2['2.2'].opcion_POSTERIOR_PENITENCIALES;
     clausula2_2_html = `
             <p class="clausula-num">${ICADE.CLAUSULA_2['2.2'].titulo}</p>
             <p>${ICADE.CLAUSULA_2['2.2'].intro}</p>
@@ -368,7 +368,7 @@ export const generateTerminosHTML = (data: ContractData): string => {
       : ICADE.CLAUSULA_5_PENITENCIALES;
 
   // Determinar si clausula5 tiene 5.4 (las versiones completas lo tienen)
-  const tiene5_4 = clausula5['5.4'] !== undefined;
+  const tiene5_4 = (clausula5 as any)['5.4'] !== undefined;
 
   // Cláusula 8 - Resolución de conflictos
   const clausula8_texto = viaResolucion === 'ARBITRAJE_NOTARIAL'
@@ -439,8 +439,8 @@ export const generateTerminosHTML = (data: ContractData): string => {
     <p class="clausula-num">${clausula5['5.3'].titulo}</p>
     <p>${clausula5['5.3'].texto}</p>
     ${tiene5_4 ? `
-    <p class="clausula-num">${clausula5['5.4'].titulo}</p>
-    <p>${clausula5['5.4'].texto}</p>
+    <p class="clausula-num">${(clausula5 as any)['5.4'].titulo}</p>
+    <p>${(clausula5 as any)['5.4'].texto}</p>
     ` : ''}
     
     <h4>${ICADE.CLAUSULA_6.titulo}</h4>
