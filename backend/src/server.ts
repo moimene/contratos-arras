@@ -107,11 +107,14 @@ app.use((_req: Request, res: Response) => {
 
 // Start server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(Number(PORT), HOST, () => {
     console.log('='.repeat(50));
     console.log(`🚀 Backend de Contratos de Arras`);
-    console.log(`📡 Servidor escuchando en puerto ${PORT}`);
-    console.log(`🌐 http://localhost:${PORT}/api/health`);
+    console.log(`📡 Servidor escuchando en ${HOST}:${PORT}`);
+    console.log(`🌐 Health check: /api/health`);
+    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log('='.repeat(50));
 });
 
