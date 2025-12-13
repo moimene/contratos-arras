@@ -233,7 +233,10 @@ export async function crearContratoExpediente(
         // No lanzar error, las relaciones son opcionales para esta versión
     }
 
-    // 8. Crear cadena de eventos forenses completa
+    // 8. Generar inventario documental base (documentos obligatorios)
+    await generarInventarioBase(contratoId, datosWizard);
+
+    // 9. Crear cadena de eventos forenses completa
     // EVENTO 1: ACEPTACIÓN DE TÉRMINOS POR COMPRADOR (primer evento de la cadena)
     const evento1Payload = {
         tipo: 'ACEPTACION_TERMINOS',
@@ -332,6 +335,86 @@ export async function crearContratoExpediente(
         numeroExpediente,
         linkCompartible,
     };
+}
+
+/**
+ * Genera el inventario documental base al crear el contrato.
+ * Incluye todos los documentos obligatorios que deben subirse antes de la notaría.
+ * 
+ * @param contratoId - ID del contrato
+ * @param datosWizard - Datos del wizard para determinar documentos condicionales
+ */
+async function generarInventarioBase(contratoId: string, datosWizard: DatosWizard): Promise<void> {
+    const items: Array<{
+        tipo: string;
+        titulo: string;
+        grupo: string;
+        responsable_rol: string;
+        obligatorio: boolean;
+        descripcion?: string;
+    }> = [
+            // === GRUPO INMUEBLE ===
+            { tipo: 'NOTA_SIMPLE', titulo: 'Nota simple vigente', grupo: 'INMUEBLE', responsable_rol: 'VENDEDOR', obligatorio: true, descripcion: 'Nota simple del Registro de la Propiedad (máximo 3 meses de antigüedad)' },
+            { tipo: 'ESCRITURA_ANTERIOR', titulo: 'Título de propiedad del transmitente', grupo: 'INMUEBLE', responsable_rol: 'VENDEDOR', obligatorio: true, descripcion: 'Escritura de adquisición del vendedor' },
+            { tipo: 'CEE', titulo: 'Certificado de eficiencia energética', grupo: 'INMUEBLE', responsable_rol: 'VENDEDOR', obligatorio: true, descripcion: 'Certificado de eficiencia energética en vigor' },
+            { tipo: 'IBI', titulo: 'Recibo IBI último ejercicio', grupo: 'INMUEBLE', responsable_rol: 'VENDEDOR', obligatorio: true, descripcion: 'Último recibo del Impuesto de Bienes Inmuebles pagado' },
+            { tipo: 'CERTIFICADO_COMUNIDAD', titulo: 'Certificado de comunidad', grupo: 'INMUEBLE', responsable_rol: 'VENDEDOR', obligatorio: true, descripcion: 'Certificado de estar al corriente de pago con la comunidad de propietarios' },
+
+            // === GRUPO PARTES ===
+            { tipo: 'DNI_NIE_COMPRADOR', titulo: 'DNI/NIE Parte compradora', grupo: 'PARTES', responsable_rol: 'COMPRADOR', obligatorio: true, descripcion: 'Documento de identidad de todos los compradores' },
+            { tipo: 'DNI_NIE_VENDEDOR', titulo: 'DNI/NIE Parte vendedora', grupo: 'PARTES', responsable_rol: 'VENDEDOR', obligatorio: true, descripcion: 'Documento de identidad de todos los vendedores' },
+
+            // === GRUPO ARRAS ===
+            { tipo: 'CONTRATO_ARRAS_FIRMADO', titulo: 'Contrato de arras firmado', grupo: 'ARRAS', responsable_rol: 'PLATAFORMA', obligatorio: true, descripcion: 'Contrato de arras con firmas electrónicas de todas las partes' },
+            { tipo: 'JUSTIFICANTE_ARRAS', titulo: 'Justificante de pago de arras', grupo: 'ARRAS', responsable_rol: 'COMPRADOR', obligatorio: true, descripcion: 'Transferencia o justificante del pago del importe de arras' },
+        ];
+
+    // Añadir documentos condicionales según datos del inmueble
+    if (datosWizard.inmueble.tieneHipoteca) {
+        items.push({
+            tipo: 'DOC_CANCELACION_HIPOTECA',
+            titulo: 'Cancelación de hipoteca / Carta de pago',
+            grupo: 'INMUEBLE',
+            responsable_rol: 'VENDEDOR',
+            obligatorio: true,
+            descripcion: 'Documentación de cancelación de hipoteca o carta de pago del banco'
+        });
+    }
+
+    if (datosWizard.inmueble.tieneArrendatarios) {
+        items.push({
+            tipo: 'DOC_ARRENDAMIENTO',
+            titulo: 'Documentación de arrendamiento',
+            grupo: 'INMUEBLE',
+            responsable_rol: 'VENDEDOR',
+            obligatorio: true,
+            descripcion: 'Contrato de arrendamiento vigente y situación de los arrendatarios'
+        });
+    }
+
+    // Insertar todos los items en inventario_expediente
+    let insertedCount = 0;
+    for (const item of items) {
+        const { error } = await supabase
+            .from('inventario_expediente')
+            .upsert({
+                contrato_id: contratoId,
+                tipo: item.tipo,
+                titulo: item.titulo,
+                descripcion: item.descripcion || null,
+                grupo: item.grupo,
+                responsable_rol: item.responsable_rol,
+                obligatorio: item.obligatorio,
+                estado: 'PENDIENTE',
+            }, {
+                onConflict: 'contrato_id,tipo',
+                ignoreDuplicates: true
+            });
+
+        if (!error) insertedCount++;
+    }
+
+    console.log(`✅ Generados ${insertedCount} items de inventario BASE para contrato ${contratoId}`);
 }
 
 /**
