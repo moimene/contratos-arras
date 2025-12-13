@@ -120,13 +120,36 @@ app.use((_req: Request, res: Response) => {
 const PORT = process.env.PORT || 4000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-app.listen(Number(PORT), HOST, () => {
+const server = app.listen(Number(PORT), HOST, () => {
     console.log('='.repeat(50));
     console.log(`🚀 Backend de Contratos de Arras`);
     console.log(`📡 Servidor escuchando en ${HOST}:${PORT}`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log('='.repeat(50));
+});
+
+// Graceful shutdown handlers
+process.on('SIGTERM', () => {
+    console.log('📛 SIGTERM recibido, cerrando servidor gracefully...');
+    server.close(() => {
+        console.log('✅ Servidor cerrado correctamente');
+        process.exit(0);
+    });
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+        console.error('⏰ Forzando cierre después de 10s');
+        process.exit(1);
+    }, 10000);
+});
+
+process.on('SIGINT', () => {
+    console.log('📛 SIGINT recibido, cerrando servidor gracefully...');
+    server.close(() => {
+        console.log('✅ Servidor cerrado correctamente');
+        process.exit(0);
+    });
 });
 
 export default app;

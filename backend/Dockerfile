@@ -18,5 +18,5 @@ RUN npm run build
 # Expose port (Railway assigns PORT dynamically)
 EXPOSE ${PORT:-4000}
 
-# Start server
-CMD ["npm", "start"]
+# Start server directly with node (avoid npm signal propagation issues)
+CMD ["node", "dist/server.js"]
