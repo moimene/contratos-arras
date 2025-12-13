@@ -262,7 +262,7 @@ router.get('/archivos/:id/versiones', async (req: Request, res: Response) => {
 
 /**
  * GET /api/archivos/:id/descargar
- * Descarga segura de archivo
+ * Descarga segura de archivo usando Supabase Storage
  */
 router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
     try {
@@ -270,7 +270,7 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
 
         const { data: archivo, error } = await supabase
             .from('archivos')
-            .select('ruta_local, nombre_original, tipo_mime')
+            .select('ruta_storage, nombre_almacenado, nombre_original, tipo_mime, contrato_id')
             .eq('id', id)
             .single();
 
@@ -278,21 +278,51 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
         }
 
-        // Verificar que el archivo existe
-        if (!archivo.ruta_local || !fs.existsSync(archivo.ruta_local)) {
-            return res.status(404).json({ success: false, error: 'Archivo físico no encontrado' });
+        // Usar Supabase Storage para obtener URL firmada
+        const storagePath = archivo.ruta_storage || archivo.nombre_almacenado;
+
+        if (!storagePath) {
+            return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
         }
 
-        res.download(archivo.ruta_local, archivo.nombre_original);
+        // Generar URL firmada válida por 1 hora
+        const { data: signedData, error: signError } = await supabase.storage
+            .from('documentos')
+            .createSignedUrl(storagePath, 3600);
+
+        if (signError || !signedData?.signedUrl) {
+            console.error('Error generando URL firmada:', signError);
+            return res.status(500).json({ success: false, error: 'Error al generar URL de descarga' });
+        }
+
+        // Registrar evento de acceso
+        try {
+            const { registerEvent } = await import('../services/eventService.js');
+            await registerEvent({
+                contratoId: archivo.contrato_id,
+                tipo: 'DOCUMENTO_ACCEDIDO',
+                payload: {
+                    descripcion: `Documento descargado: ${archivo.nombre_original}`,
+                    archivo_id: id,
+                    nombre_original: archivo.nombre_original
+                }
+            });
+        } catch (eventError) {
+            console.warn('Error registrando evento de acceso:', eventError);
+        }
+
+        // Redirigir a la URL firmada
+        res.redirect(signedData.signedUrl);
     } catch (error: any) {
         console.error('Error descargando archivo:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+
 /**
  * GET /api/archivos/:id/preview
- * Preview de archivo (para visor embebido)
+ * Preview de archivo usando Supabase Storage
  */
 router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
     try {
@@ -300,16 +330,12 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
 
         const { data: archivo, error } = await supabase
             .from('archivos')
-            .select('ruta_local, nombre_original, tipo_mime')
+            .select('ruta_storage, nombre_almacenado, nombre_original, tipo_mime')
             .eq('id', id)
             .single();
 
         if (error || !archivo) {
             return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
-        }
-
-        if (!archivo.ruta_local || !fs.existsSync(archivo.ruta_local)) {
-            return res.status(404).json({ success: false, error: 'Archivo físico no encontrado' });
         }
 
         // Solo permitir preview de PDFs e imágenes
@@ -322,9 +348,25 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
             });
         }
 
-        res.setHeader('Content-Type', archivo.tipo_mime);
-        res.setHeader('Content-Disposition', 'inline');
-        fs.createReadStream(archivo.ruta_local).pipe(res);
+        // Usar Supabase Storage para obtener URL firmada
+        const storagePath = archivo.ruta_storage || archivo.nombre_almacenado;
+
+        if (!storagePath) {
+            return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
+        }
+
+        // Generar URL firmada válida por 1 hora
+        const { data: signedData, error: signError } = await supabase.storage
+            .from('documentos')
+            .createSignedUrl(storagePath, 3600);
+
+        if (signError || !signedData?.signedUrl) {
+            console.error('Error generando URL firmada:', signError);
+            return res.status(500).json({ success: false, error: 'Error al generar URL de preview' });
+        }
+
+        // Redirigir a la URL firmada para preview
+        res.redirect(signedData.signedUrl);
     } catch (error: any) {
         console.error('Error en preview:', error);
         res.status(500).json({ success: false, error: error.message });
