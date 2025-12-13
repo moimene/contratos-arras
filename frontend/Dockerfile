@@ -12,13 +12,18 @@ RUN npm ci
 # Copy source code
 COPY . ./
 
-# Build for production (VITE_API_URL will be injected at build time)
-ARG VITE_API_URL
-ARG VITE_SUPABASE_URL
+# Build for production - Default values for Railway deployment
+# These can be overridden by build args from Railway if provided
+ARG VITE_API_URL=https://contratos-arras-production.up.railway.app
+ARG VITE_SUPABASE_URL=https://vwoovqxurcnloqlqtupx.supabase.co
 ARG VITE_SUPABASE_ANON_KEY
+
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
+# Debug: Print values during build
+RUN echo "Building with VITE_API_URL=$VITE_API_URL"
 
 RUN npm run build
 
