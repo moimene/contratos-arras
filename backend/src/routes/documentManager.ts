@@ -89,6 +89,16 @@ router.get('/contratos/:contratoId/documentos', async (req: Request, res: Respon
         if (inventarioError) throw inventarioError;
 
         // Combinar: cada ítem de inventario con su archivo asociado
+        // Debug: Log what we're working with
+        console.log(`[DEBUG] Contract ${contratoId}: ${archivos?.length || 0} archivos, ${inventario?.length || 0} inventario items`);
+        if (archivos?.length) {
+            console.log('[DEBUG] Archivo IDs:', archivos.map(a => a.id).join(', '));
+        }
+        const itemsWithArchivoId = inventario?.filter(i => i.archivo_id) || [];
+        if (itemsWithArchivoId.length) {
+            console.log('[DEBUG] Inventario archivo_ids:', itemsWithArchivoId.map(i => `${i.titulo}: ${i.archivo_id}`).join(', '));
+        }
+
         const documentos = inventario?.map(item => {
             const archivo = archivos?.find(a => a.id === item.archivo_id);
             return {
