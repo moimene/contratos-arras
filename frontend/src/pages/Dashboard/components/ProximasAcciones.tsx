@@ -32,7 +32,7 @@ export default function ProximasAcciones({ contratoId, estado, firmasCompletas }
                     icon: '📅',
                     titulo: 'Convocar a Notaría',
                     descripcion: 'Crear cita notarial y convocar a las partes',
-                    accion: () => navigate(`/notaria/${contratoId}/crear`),
+                    accion: () => navigate(`/notaria/${contratoId}`),
                     disabled: false,
                     primary: true
                 },
@@ -40,7 +40,7 @@ export default function ProximasAcciones({ contratoId, estado, firmasCompletas }
                     icon: '📋',
                     titulo: 'Checklist Documentos',
                     descripcion: 'Gestionar documentación necesaria para la escritura',
-                    accion: () => navigate(`/documentos/${contratoId}`),
+                    accion: () => navigate(`/notaria/${contratoId}`),
                     disabled: false
                 },
                 {
@@ -60,7 +60,7 @@ export default function ProximasAcciones({ contratoId, estado, firmasCompletas }
                     icon: '📄',
                     titulo: 'Gestionar Documentos',
                     descripcion: 'Subir documentación requerida para la escritura',
-                    accion: () => navigate(`/documentos/${contratoId}`),
+                    accion: () => navigate(`/notaria/${contratoId}`),
                     disabled: false,
                     primary: true
                 },

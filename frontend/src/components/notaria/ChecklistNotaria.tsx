@@ -39,7 +39,7 @@ interface ChecklistNotariaProps {
     onGenerarInventario?: () => void;
 }
 
-const API_URL = 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const ESTADO_CONFIG: Record<string, { icon: string; label: string; className: string }> = {
     PENDIENTE: { icon: '⏳', label: 'Pendiente', className: 'estado-pendiente' },

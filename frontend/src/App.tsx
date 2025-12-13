@@ -15,6 +15,7 @@ import ExpedientesList from './pages/ExpedientesList/ExpedientesList';
 import UserProfile from './pages/Profile/UserProfile';
 import OrganizationSettings from './pages/Organization/OrganizationSettings';
 import TeamManagement from './pages/Organization/TeamManagement';
+import NotariaPage from './pages/Notaria/NotariaPage';
 import { TrustBadges, EidasBadge } from './components/branding/TrustBadges';
 import './index.css';
 
@@ -118,6 +119,9 @@ function App() {
             {/* Dashboard - Gestión de Expediente */}
             <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
             <Route path="/dashboard/:contratoId" element={<ContratoDashboard />} />
+
+            {/* Notaría - Gestión de citas y checklist */}
+            <Route path="/notaria/:contratoId" element={<NotariaPage />} />
 
             {/* User Management */}
             <Route path="/profile" element={<UserProfile />} />
