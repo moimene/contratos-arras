@@ -166,11 +166,12 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
 
 /**
  * GET /api/upload/:id
- * Descarga un archivo por su ID
+ * Descarga un archivo por su ID y registra evento de acceso con TST
  */
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const accedido_por = req.query.rol as string || 'USUARIO';
 
         const { data: archivo, error } = await supabase
             .from('archivos')
@@ -183,6 +184,24 @@ router.get('/:id', async (req: Request, res: Response) => {
                 success: false,
                 error: 'Archivo no encontrado'
             });
+        }
+
+        // Registrar evento de acceso con TST
+        try {
+            await registerEvent({
+                contratoId: archivo.contrato_id,
+                tipo: 'DOCUMENTO_ACCEDIDO',
+                payload: {
+                    descripcion: `Documento accedido: ${archivo.nombre_original}`,
+                    archivo_id: id,
+                    nombre_original: archivo.nombre_original,
+                    tipo_documento: archivo.tipo_documento,
+                    accedido_por_rol: accedido_por
+                }
+            });
+        } catch (eventError) {
+            console.warn('Error registrando evento de acceso:', eventError);
+            // Continuar con la descarga aunque falle el evento
         }
 
         // Enviar archivo
@@ -198,23 +217,70 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/upload/:id
- * Elimina un archivo
+ * Elimina un archivo del disco y la base de datos, registrando evento con TST
  */
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const eliminado_por = req.query.rol as string || 'USUARIO';
 
-        // TODO: Eliminar archivo físico del disco
-        // TODO: Verificar permisos
+        // 1. Recuperar información del archivo
+        const { data: archivo, error: fetchError } = await supabase
+            .from('archivos')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        const { error } = await supabase
+        if (fetchError || !archivo) {
+            return res.status(404).json({
+                success: false,
+                error: 'Archivo no encontrado'
+            });
+        }
+
+        // 2. Eliminar archivo físico del disco
+        const fs = await import('fs/promises');
+        try {
+            await fs.unlink(archivo.ruta_local);
+            console.log(`✓ Archivo físico eliminado: ${archivo.ruta_local}`);
+        } catch (fsError: any) {
+            if (fsError.code !== 'ENOENT') {
+                console.warn('Error eliminando archivo físico:', fsError);
+            }
+            // Continuar aunque el archivo no exista en disco
+        }
+
+        // 3. Registrar evento de eliminación con TST
+        try {
+            await registerEvent({
+                contratoId: archivo.contrato_id,
+                tipo: 'DOCUMENTO_ELIMINADO',
+                payload: {
+                    descripcion: `Documento eliminado: ${archivo.nombre_original}`,
+                    archivo_id: id,
+                    nombre_original: archivo.nombre_original,
+                    tipo_documento: archivo.tipo_documento,
+                    tamano_bytes: archivo.tamano_bytes,
+                    eliminado_por_rol: eliminado_por
+                }
+            });
+        } catch (eventError) {
+            console.warn('Error registrando evento de eliminación:', eventError);
+        }
+
+        // 4. Eliminar de base de datos
+        const { error: deleteError } = await supabase
             .from('archivos')
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (deleteError) throw deleteError;
 
-        res.json({ success: true, message: 'Archivo eliminado' });
+        res.json({
+            success: true,
+            message: 'Archivo eliminado correctamente',
+            archivo_id: id
+        });
     } catch (error: any) {
         console.error('Error eliminando archivo:', error);
         res.status(500).json({

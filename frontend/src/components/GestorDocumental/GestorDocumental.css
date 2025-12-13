@@ -51,7 +51,8 @@
 .gestor-header h2 {
     margin: 0;
     font-size: 1.4rem;
-    color: #1a365d;
+    color: #0f172a;
+    font-weight: 700;
 }
 
 .resumen-badges {
@@ -178,7 +179,7 @@
 .no-documentos {
     text-align: center;
     padding: 3rem;
-    color: #888;
+    color: #4b5563;
 }
 
 .documento-row {
@@ -186,10 +187,11 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: #fafbfc;
+    background: #ffffff;
     border-radius: 10px;
     border-left: 4px solid #e9ecef;
     transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .documento-row:hover {
@@ -225,13 +227,14 @@
 }
 
 .doc-titulo {
-    font-weight: 600;
-    color: #1a365d;
+    font-weight: 700;
+    color: #0f172a;
     margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+    font-size: 0.95rem;
 }
 
 .doc-titulo .tag {
@@ -255,13 +258,14 @@
     display: flex;
     gap: 1rem;
     font-size: 0.8rem;
-    color: #666;
+    color: #374151;
     flex-wrap: wrap;
+    font-weight: 500;
 }
 
 .doc-hash {
     font-size: 0.75rem;
-    color: #888;
+    color: #6b7280;
     font-family: monospace;
     margin-top: 0.25rem;
 }
@@ -354,6 +358,14 @@
 
 .btn-accion.detalle:hover {
     background: #e1bee7;
+}
+
+.btn-accion.eliminar {
+    background: #fee2e2;
+}
+
+.btn-accion.eliminar:hover {
+    background: #fecaca;
 }
 
 /* Modal */

@@ -159,6 +159,29 @@ export default function GestorDocumental({ contratoId, rolActual }: GestorDocume
         window.open(`${apiUrl}/api/archivos/${archivoId}/preview`, '_blank');
     };
 
+    const handleEliminar = async (archivoId: string, nombreArchivo: string) => {
+        if (!confirm(`¿Eliminar el documento "${nombreArchivo}"? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const response = await fetch(`${apiUrl}/api/upload/${archivoId}?rol=${rolActual}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchDocumentos();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Error al eliminar documento');
+            }
+        } catch (err) {
+            console.error('Error eliminando documento:', err);
+            alert('Error al conectar con el servidor');
+        }
+    };
+
     const formatBytes = (bytes: number) => {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -353,6 +376,13 @@ export default function GestorDocumental({ contratoId, rolActual }: GestorDocume
                                             title="Descargar"
                                         >
                                             ⬇️
+                                        </button>
+                                        <button
+                                            className="btn-accion eliminar"
+                                            onClick={() => handleEliminar(doc.archivo!.id, doc.archivo!.nombreOriginal)}
+                                            title="Eliminar documento"
+                                        >
+                                            🗑️
                                         </button>
                                     </>
                                 )}
