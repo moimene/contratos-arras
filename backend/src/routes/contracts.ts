@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { crearContratoExpediente, obtenerContratoCompleto, DatosWizard } from '../services/contractService.js';
-import { guardarArchivo, obtenerUrlPublica } from '../services/storageService.js';
+import { guardarArchivo } from '../services/storageService.js';
 
 const router = Router();
 
@@ -40,12 +40,16 @@ router.post('/init', upload.single('pdf'), async (req: Request, res: Response) =
                 });
             }
 
-            // Guardar PDF en storage
-            borradorPdfPath = await guardarArchivo(
+            // Guardar PDF en storage (necesita contratoId pero aún no lo tenemos)
+            // Por ahora generamos un ID temporal, el contrato lo actualizará después
+            const tempContratoId = 'temp-' + Date.now();
+            const storageResult = await guardarArchivo(
                 req.file.buffer,
                 req.file.originalname || 'contrato_borrador.pdf',
-                'pdf'
+                tempContratoId,
+                'borrador'
             );
+            borradorPdfPath = storageResult.path;
         } else {
             // Si viene como JSON puro
             datosWizard = req.body.datosWizard;
@@ -96,7 +100,7 @@ router.post('/init', upload.single('pdf'), async (req: Request, res: Response) =
             numeroExpediente: resultado.numeroExpediente,
             linkCompartible: resultado.linkCompartible,
             dashboardUrl,
-            pdfUrl: borradorPdfPath ? obtenerUrlPublica(borradorPdfPath) : null,
+            pdfPath: borradorPdfPath || null,
         });
 
     } catch (error: any) {

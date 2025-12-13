@@ -1,17 +1,22 @@
+/**
+ * Storage API Routes
+ * 
+ * Rutas para subida y descarga de archivos usando Supabase Storage.
+ */
+
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { guardarArchivo, leerArchivo, obtenerUrlPublica } from '../services/storageService.js';
+import { guardarArchivo, leerArchivo, obtenerUrlDescarga } from '../services/storageService.js';
 
 const router = Router();
 
-// Configurar multer
+// Configurar multer con memoria (luego subimos a Supabase)
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10 MB
+        fileSize: 50 * 1024 * 1024, // 50 MB (límite Supabase free)
     },
     fileFilter: (_req, file, cb) => {
-        // Aceptar PDFs y imágenes comunes
         const allowedMimes = [
             'application/pdf',
             'image/jpeg',
@@ -30,11 +35,12 @@ const upload = multer({
 
 /**
  * POST /api/storage/upload
- * Sube un archivo al storage
+ * Sube un archivo a Supabase Storage
  * 
  * Form-data:
  * - file: File (required)
- * - type: 'pdf' | 'documento' | 'acta' (optional, default: 'documento')
+ * - contrato_id: string (required)
+ * - tipo: string (optional, default: 'documento')
  */
 router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
     try {
@@ -45,23 +51,24 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
             });
         }
 
-        const type = (req.body.type as 'pdf' | 'documento' | 'acta') || 'documento';
+        const contratoId = req.body.contrato_id || 'general';
+        const tipo = req.body.tipo || 'documento';
 
-        const relativePath = await guardarArchivo(
+        const result = await guardarArchivo(
             req.file.buffer,
             req.file.originalname,
-            type
+            contratoId,
+            tipo
         );
-
-        const publicUrl = obtenerUrlPublica(relativePath);
 
         res.json({
             success: true,
-            path: relativePath,
-            url: publicUrl,
+            path: result.path,
+            url: result.publicUrl,
+            hash: result.hash,
             filename: req.file.originalname,
             mimeType: req.file.mimetype,
-            size: req.file.size,
+            size: result.size,
         });
 
     } catch (error: any) {
@@ -74,18 +81,32 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
 });
 
 /**
- * GET /api/storage/:subdir/:filename
- * Descarga un archivo del storage
+ * GET /api/storage/:path(*)
+ * Descarga un archivo de Supabase Storage
  */
-router.get('/:subdir/:filename', async (req: Request, res: Response) => {
+router.get('/*', async (req: Request, res: Response) => {
     try {
-        const { subdir, filename } = req.params;
-        const relativePath = `${subdir}/${filename}`;
+        // El path viene después de /api/storage/
+        const storagePath = req.params[0] || req.path.substring(1);
 
-        const buffer = await leerArchivo(relativePath);
+        if (!storagePath) {
+            return res.status(400).json({
+                success: false,
+                error: 'Path del archivo requerido',
+            });
+        }
+
+        // Opción 1: Redirigir a URL signada (más eficiente)
+        if (req.query.redirect !== 'false') {
+            const signedUrl = await obtenerUrlDescarga(storagePath, 3600);
+            return res.redirect(signedUrl);
+        }
+
+        // Opción 2: Servir el archivo directamente (si redirect=false)
+        const buffer = await leerArchivo(storagePath);
 
         // Determinar content-type basado en extensión
-        const ext = filename.split('.').pop()?.toLowerCase();
+        const ext = storagePath.split('.').pop()?.toLowerCase();
         let contentType = 'application/octet-stream';
 
         switch (ext) {
@@ -104,23 +125,16 @@ router.get('/:subdir/:filename', async (req: Request, res: Response) => {
                 break;
         }
 
+        const filename = storagePath.split('/').pop() || 'file';
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
         res.send(buffer);
 
     } catch (error: any) {
         console.error('Error al servir archivo:', error);
-
-        if (error.code === 'ENOENT') {
-            return res.status(404).json({
-                success: false,
-                error: 'Archivo no encontrado',
-            });
-        }
-
-        res.status(500).json({
+        res.status(404).json({
             success: false,
-            error: 'Error al servir archivo',
+            error: 'Archivo no encontrado',
         });
     }
 });

@@ -2,36 +2,20 @@
  * Upload API Routes
  * 
  * Gestión de subida de archivos para documentos del inventario.
- * Almacenamiento local en /files con registro en base de datos.
+ * Almacenamiento en Supabase Storage con registro en base de datos.
  */
 
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import { supabase } from '../config/supabase.js';
 import { registerEvent } from '../services/eventService.js';
+import { guardarArchivo, leerArchivo, eliminarArchivo, obtenerUrlDescarga, calcularHashArchivo } from '../services/storageService.js';
 
 const router = Router();
 
-// Configurar directorio de archivos
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const UPLOAD_DIR = path.join(__dirname, '../../files');
-
-// Configurar multer para almacenamiento local
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, UPLOAD_DIR);
-    },
-    filename: (req, file, cb) => {
-        const uniqueId = randomUUID();
-        const ext = path.extname(file.originalname);
-        const safeName = `${uniqueId}${ext}`;
-        cb(null, safeName);
-    }
-});
+// Configurar multer para almacenamiento en memoria (luego subimos a Supabase)
+const storage = multer.memoryStorage();
 
 // Filtrar tipos de archivo permitidos
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -55,13 +39,13 @@ const upload = multer({
     storage,
     fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB máximo
+        fileSize: 50 * 1024 * 1024 // 50MB máximo (límite Supabase free tier)
     }
 });
 
 /**
  * POST /api/upload
- * Sube un archivo y lo registra en la base de datos
+ * Sube un archivo a Supabase Storage y lo registra en la base de datos
  * 
  * Body (multipart/form-data):
  * - file: archivo a subir
@@ -87,15 +71,26 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
             });
         }
 
-        // Registrar archivo en base de datos
+        // 1. Subir archivo a Supabase Storage
+        const storageResult = await guardarArchivo(
+            req.file.buffer,
+            req.file.originalname,
+            contrato_id,
+            tipo || 'documento'
+        );
+
+        // 2. Registrar archivo en base de datos
+        const archivoId = randomUUID();
         const archivoData = {
-            id: randomUUID(),
+            id: archivoId,
             contrato_id,
             nombre_original: req.file.originalname,
-            nombre_almacenado: req.file.filename,
+            nombre_almacenado: storageResult.path,
             tipo_mime: req.file.mimetype,
-            tamano_bytes: req.file.size,
-            ruta_local: req.file.path,
+            tamano_bytes: storageResult.size,
+            hash_sha256: storageResult.hash,
+            ruta_storage: storageResult.path,
+            url_publica: storageResult.publicUrl,
             tipo_documento: tipo || 'OTRO',
             subido_por_rol: subido_por_rol || 'USUARIO',
             subido_por_usuario: subido_por_usuario || null
@@ -109,17 +104,22 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
 
         if (archivoError) {
             console.error('Error guardando archivo en DB:', archivoError);
-            // Si falla la DB, el archivo ya está subido - podríamos eliminarlo
-            // pero por ahora continuamos con una respuesta parcial
+            // Intentar eliminar archivo de storage si falla DB
+            try {
+                await eliminarArchivo(storageResult.path);
+            } catch (cleanupError) {
+                console.warn('Error limpiando archivo:', cleanupError);
+            }
+            throw new Error('Error registrando archivo en base de datos');
         }
 
-        // Si se proporcionó inventario_item_id, actualizar el ítem
+        // 3. Si se proporcionó inventario_item_id, actualizar el ítem
         if (inventario_item_id) {
             const { error: updateError } = await supabase
                 .from('inventario_expediente')
                 .update({
                     estado: 'SUBIDO',
-                    archivo_id: archivo?.id || archivoData.id,
+                    archivo_id: archivo.id,
                     fecha_subida: new Date().toISOString(),
                     subido_por_rol: subido_por_rol || 'USUARIO',
                     subido_por_usuario: subido_por_usuario || null
@@ -130,17 +130,19 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
                 console.error('Error actualizando inventario:', updateError);
             }
 
-            // Registrar evento
+            // 4. Registrar evento con TST
             await registerEvent({
                 contratoId: contrato_id,
                 tipo: 'DOCUMENTO_SUBIDO',
                 payload: {
                     descripcion: `Documento subido: ${req.file.originalname}`,
-                    archivo_id: archivo?.id || archivoData.id,
+                    archivo_id: archivo.id,
                     inventario_item_id,
                     nombre_original: req.file.originalname,
                     tipo_documento: tipo,
-                    tamano_bytes: req.file.size
+                    tamano_bytes: storageResult.size,
+                    hash_sha256: storageResult.hash,
+                    storage_path: storageResult.path
                 }
             });
         }
@@ -148,11 +150,13 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
         res.status(201).json({
             success: true,
             data: {
-                archivo_id: archivo?.id || archivoData.id,
+                archivo_id: archivo.id,
                 nombre_original: req.file.originalname,
-                nombre_almacenado: req.file.filename,
+                storage_path: storageResult.path,
+                hash_sha256: storageResult.hash,
                 tipo_mime: req.file.mimetype,
-                tamano_bytes: req.file.size
+                tamano_bytes: storageResult.size,
+                url: storageResult.publicUrl
             }
         });
     } catch (error: any) {
@@ -173,6 +177,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         const { id } = req.params;
         const accedido_por = req.query.rol as string || 'USUARIO';
 
+        // 1. Obtener info del archivo de la DB
         const { data: archivo, error } = await supabase
             .from('archivos')
             .select('*')
@@ -186,7 +191,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             });
         }
 
-        // Registrar evento de acceso con TST
+        // 2. Registrar evento de acceso con TST
         try {
             await registerEvent({
                 contratoId: archivo.contrato_id,
@@ -201,11 +206,13 @@ router.get('/:id', async (req: Request, res: Response) => {
             });
         } catch (eventError) {
             console.warn('Error registrando evento de acceso:', eventError);
-            // Continuar con la descarga aunque falle el evento
         }
 
-        // Enviar archivo
-        res.download(archivo.ruta_local, archivo.nombre_original);
+        // 3. Obtener URL de descarga signada
+        const downloadUrl = await obtenerUrlDescarga(archivo.ruta_storage || archivo.nombre_almacenado, 3600);
+
+        // 4. Redirigir a la URL signada de Supabase
+        res.redirect(downloadUrl);
     } catch (error: any) {
         console.error('Error descargando archivo:', error);
         res.status(500).json({
@@ -216,8 +223,46 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/upload/:id/url
+ * Obtiene URL signada para descarga directa (sin redirigir)
+ */
+router.get('/:id/url', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const expiresIn = parseInt(req.query.expires as string) || 3600;
+
+        const { data: archivo, error } = await supabase
+            .from('archivos')
+            .select('ruta_storage, nombre_almacenado')
+            .eq('id', id)
+            .single();
+
+        if (error || !archivo) {
+            return res.status(404).json({
+                success: false,
+                error: 'Archivo no encontrado'
+            });
+        }
+
+        const url = await obtenerUrlDescarga(archivo.ruta_storage || archivo.nombre_almacenado, expiresIn);
+
+        res.json({
+            success: true,
+            url,
+            expires_in: expiresIn
+        });
+    } catch (error: any) {
+        console.error('Error obteniendo URL:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * DELETE /api/upload/:id
- * Elimina un archivo del disco y la base de datos, registrando evento con TST
+ * Elimina un archivo de Supabase Storage y la base de datos, registrando evento con TST
  */
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
@@ -238,16 +283,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
             });
         }
 
-        // 2. Eliminar archivo físico del disco
-        const fs = await import('fs/promises');
+        // 2. Eliminar archivo de Supabase Storage
         try {
-            await fs.unlink(archivo.ruta_local);
-            console.log(`✓ Archivo físico eliminado: ${archivo.ruta_local}`);
-        } catch (fsError: any) {
-            if (fsError.code !== 'ENOENT') {
-                console.warn('Error eliminando archivo físico:', fsError);
-            }
-            // Continuar aunque el archivo no exista en disco
+            await eliminarArchivo(archivo.ruta_storage || archivo.nombre_almacenado);
+            console.log(`✓ Archivo eliminado de Supabase Storage: ${archivo.ruta_storage}`);
+        } catch (storageError: any) {
+            console.warn('Error eliminando de storage:', storageError.message);
+            // Continuar aunque falle el storage
         }
 
         // 3. Registrar evento de eliminación con TST
@@ -261,6 +303,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
                     nombre_original: archivo.nombre_original,
                     tipo_documento: archivo.tipo_documento,
                     tamano_bytes: archivo.tamano_bytes,
+                    hash_sha256: archivo.hash_sha256,
                     eliminado_por_rol: eliminado_por
                 }
             });
@@ -275,6 +318,18 @@ router.delete('/:id', async (req: Request, res: Response) => {
             .eq('id', id);
 
         if (deleteError) throw deleteError;
+
+        // 5. Si había inventario asociado, actualizar estado a PENDIENTE
+        if (archivo.inventario_item_id) {
+            await supabase
+                .from('inventario_expediente')
+                .update({
+                    estado: 'PENDIENTE',
+                    archivo_id: null,
+                    fecha_subida: null
+                })
+                .eq('archivo_id', id);
+        }
 
         res.json({
             success: true,
