@@ -1,0 +1,412 @@
+/**
+ * InviteModal Styles
+ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.invite-modal {
+    background: var(--bg-secondary, #1a1a2e);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-color, #333);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color, #333);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary, #fff);
+}
+
+.close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: var(--bg-tertiary, #252540);
+    color: var(--text-secondary, #888);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: var(--color-error, #e74c3c);
+    color: white;
+}
+
+/* Form */
+.invite-modal form {
+    padding: 1.5rem;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-section.highlight {
+    background: var(--bg-tertiary, #252540);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--color-primary, #6c5ce7);
+}
+
+.form-section>label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary, #fff);
+    font-size: 0.9rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-field {
+    flex: 1;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: var(--bg-primary, #0f0f1a);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 0.9rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: var(--color-primary, #6c5ce7);
+}
+
+.form-field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.form-error {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid var(--color-error, #e74c3c);
+    color: var(--color-error, #e74c3c);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* Checkbox label */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #888);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary, #6c5ce7);
+}
+
+/* Role grid */
+.role-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.role-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary, #252540);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.role-option:hover {
+    background: var(--bg-primary, #0f0f1a);
+}
+
+.role-option.selected {
+    border-color: var(--color-primary, #6c5ce7);
+    background: rgba(108, 92, 231, 0.1);
+}
+
+.role-icon {
+    font-size: 1.5rem;
+}
+
+.role-label {
+    font-size: 0.75rem;
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+}
+
+.role-description {
+    font-size: 0.8rem;
+    color: var(--text-muted, #666);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+/* Mandato options */
+.mandato-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mandato-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-primary, #0f0f1a);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.mandato-option:hover {
+    background: var(--bg-secondary, #1a1a2e);
+}
+
+.mandato-option.selected {
+    border-color: var(--color-primary, #6c5ce7);
+}
+
+.mandato-option input[type="radio"] {
+    accent-color: var(--color-primary, #6c5ce7);
+}
+
+.mandato-label {
+    font-size: 0.9rem;
+    color: var(--text-primary, #fff);
+}
+
+/* Permissions */
+.permisos-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border-color, #333);
+}
+
+.permisos-section>label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+}
+
+.permisos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.permiso-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-primary, #0f0f1a);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+    transition: color 0.2s ease;
+}
+
+.permiso-checkbox:has(input:checked) {
+    color: var(--text-primary, #fff);
+}
+
+.permiso-checkbox input[type="checkbox"] {
+    accent-color: var(--color-primary, #6c5ce7);
+}
+
+/* Preview */
+.preview-section {
+    background: var(--bg-tertiary, #252540);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--color-primary, #6c5ce7);
+}
+
+.preview-section strong {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-section p {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    color: var(--text-primary, #fff);
+}
+
+/* Footer */
+.modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #333);
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 0.65rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: var(--color-primary, #6c5ce7);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-dark, #5b4cdb);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary, #252540);
+    color: var(--text-secondary, #888);
+    border: 1px solid var(--border-color, #333);
+}
+
+.btn-secondary:hover {
+    color: var(--text-primary, #fff);
+    border-color: var(--text-secondary, #888);
+}
+
+/* Success state */
+.modal-success {
+    padding: 2rem;
+    text-align: center;
+}
+
+.success-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.modal-success h3 {
+    margin: 0 0 0.5rem;
+    color: var(--text-primary, #fff);
+}
+
+.modal-success p {
+    color: var(--text-secondary, #888);
+    margin-bottom: 1rem;
+}
+
+.link-box {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.link-box input {
+    flex: 1;
+    padding: 0.65rem 0.85rem;
+    background: var(--bg-primary, #0f0f1a);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 0.8rem;
+}
+
+.link-box button {
+    padding: 0.65rem 1rem;
+    background: var(--bg-tertiary, #252540);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.link-box button:hover {
+    background: var(--color-primary, #6c5ce7);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .role-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .permisos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        flex-direction: column;
+    }
+}

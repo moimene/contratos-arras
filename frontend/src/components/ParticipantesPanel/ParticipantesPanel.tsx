@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import './ParticipantesPanel.css';
+import InviteModal from '../InviteModal';
 
 interface Mandato {
     id: string;
@@ -46,6 +47,7 @@ interface Invitacion {
 
 interface ParticipantesPanelProps {
     contratoId: string;
+    userId?: string;
     rolActual?: string;
 }
 
@@ -80,7 +82,7 @@ const ESTADO_COLORS: Record<string, string> = {
     REVOCADA: 'var(--color-error)'
 };
 
-export default function ParticipantesPanel({ contratoId, rolActual }: ParticipantesPanelProps) {
+export default function ParticipantesPanel({ contratoId, userId, rolActual }: ParticipantesPanelProps) {
     const [activeTab, setActiveTab] = useState<'personas' | 'invitaciones'>('personas');
     const [miembros, setMiembros] = useState<Miembro[]>([]);
     const [invitaciones, setInvitaciones] = useState<Invitacion[]>([]);
@@ -329,16 +331,16 @@ export default function ParticipantesPanel({ contratoId, rolActual }: Participan
                 )}
             </div>
 
-            {/* Invite Modal (placeholder) */}
-            {showInviteModal && (
-                <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h3>Invitar a alguien</h3>
-                        <p>Modal de invitación - Por implementar</p>
-                        <button onClick={() => setShowInviteModal(false)}>Cerrar</button>
-                    </div>
-                </div>
-            )}
+            {/* Invite Modal */}
+            <InviteModal
+                contratoId={contratoId}
+                userId={userId}
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                onSuccess={() => {
+                    fetchInvitaciones();
+                }}
+            />
         </div>
     );
 }
