@@ -10,6 +10,9 @@ import { useContrato } from '../../hooks/useContrato';
 import { useTipoRolUsuario, ROL_LABELS, ROL_ICONS } from '../../hooks/useTipoRolUsuario';
 import { useContratoDashboardVM } from './hooks/useContratoDashboardVM';
 import { isPostFirma } from '../../domain/contrato';
+import { useAuth } from '../../features/auth/AuthContext';
+import { MandatoProvider } from '../../contexts/MandatoContext';
+import MandatoSelector from '../../components/MandatoSelector';
 
 // =============================================================================
 // LAZY LOADED COMPONENTS - Solo se cargan cuando la sección se expande
@@ -62,6 +65,9 @@ export default function ContratoDashboard({
 
     // Get the current user's role (query param > localStorage > fallback)
     const { role: rolActual, source: roleSource } = useTipoRolUsuario();
+
+    // Get authenticated user for MandatoProvider
+    const { user } = useAuth();
 
     // Use the ViewModel for UI logic derivation (with role for task engine)
     const vm = useContratoDashboardVM(contrato, rolActual);
@@ -144,6 +150,13 @@ export default function ContratoDashboard({
                             <EstadoBadge estado={contrato.estado} />
                         </div>
                         <div className="header-actions">
+                            {/* Mandato selector for multi-mandate users */}
+                            {user && contratoId && (
+                                <MandatoProvider contratoId={contratoId} usuarioId={user.id}>
+                                    <MandatoSelector />
+                                </MandatoProvider>
+                            )}
+
                             {/* Role indicator - useful for QA and demos */}
                             <span
                                 className={`role-indicator ${vm.hayTareasUrgentes ? 'has-urgent' : ''}`}

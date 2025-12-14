@@ -1,0 +1,201 @@
+/**
+ * MandatoSelector Styles
+ */
+
+.mandato-selector {
+    position: relative;
+    display: inline-flex;
+}
+
+.mandato-selector.loading {
+    padding: 0.5rem 1rem;
+}
+
+.loading-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary, #6c5ce7);
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Force Selection Badge */
+.force-selection-badge {
+    background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.85rem;
+    animation: attention-pulse 2s infinite;
+    box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+}
+
+@keyframes attention-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 2px 20px rgba(243, 156, 18, 0.6);
+    }
+}
+
+/* Mandato Chip */
+.mandato-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    background: linear-gradient(135deg, var(--bg-tertiary, #252540) 0%, var(--bg-secondary, #1a1a2e) 100%);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 20px;
+    cursor: default;
+    transition: all 0.2s ease;
+    color: var(--text-primary, #fff);
+    font-size: 0.85rem;
+}
+
+.mandato-selector.has-dropdown .mandato-chip {
+    cursor: pointer;
+}
+
+.mandato-selector.has-dropdown .mandato-chip:hover {
+    border-color: var(--color-primary, #6c5ce7);
+    background: var(--bg-tertiary, #252540);
+}
+
+.chip-icon {
+    font-size: 1.1rem;
+}
+
+.chip-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+
+.chip-prefix {
+    font-size: 0.65rem;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chip-label {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.chip-arrow {
+    font-size: 0.6rem;
+    color: var(--text-secondary, #888);
+    margin-left: 0.25rem;
+    transition: transform 0.2s ease;
+}
+
+.chip-arrow.open {
+    transform: rotate(180deg);
+}
+
+/* Compact mode */
+.mandato-selector.compact .chip-content {
+    flex-direction: row;
+    gap: 0.25rem;
+}
+
+.mandato-selector.compact .chip-prefix {
+    display: none;
+}
+
+.mandato-selector.compact .mandato-chip {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+/* Dropdown */
+.mandato-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    background: var(--bg-secondary, #1a1a2e);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.mandato-dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.dropdown-header {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, #888);
+    border-bottom: 1px solid var(--border-color, #333);
+}
+
+.mandato-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-primary, #fff);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-align: left;
+}
+
+.mandato-option:hover {
+    background: var(--bg-tertiary, #252540);
+}
+
+.mandato-option:last-child {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.option-icon {
+    font-size: 1.25rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary, #0f0f1a);
+    border-radius: 8px;
+}
+
+.option-label {
+    font-size: 0.9rem;
+}
