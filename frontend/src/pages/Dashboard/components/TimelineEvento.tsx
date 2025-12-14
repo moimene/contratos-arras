@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { getEventoConfig } from '../../../domain/contrato';
+import { getMandatoEventLabel, getMandatoIcon } from '../../../domain/mandatos';
 
 interface Evento {
     id: string;
@@ -13,14 +14,6 @@ interface Evento {
     hash_sha256: string;
 }
 
-// Labels para mandatos (probatorio)
-const MANDATO_LABELS: Record<string, string> = {
-    PARTE_COMPRADORA: 'Asesor de la parte compradora',
-    PARTE_VENDEDORA: 'Asesor de la parte vendedora',
-    AMBAS_PARTES: 'Asesor de ambas partes',
-    NOTARIA: 'Notaría',
-    OBSERVADOR_TECNICO: 'Observador técnico'
-};
 
 interface TimelineEventoProps {
     eventos: Evento[];
@@ -107,7 +100,7 @@ function TimelineItem({ evento, isLast, formatFecha }: TimelineItemProps) {
                     )}
                     {evento.actor_mandato_tipo && (
                         <span className="actor-mandato" title={`Mandato: ${evento.actor_mandato_tipo}`}>
-                            🧭 {MANDATO_LABELS[evento.actor_mandato_tipo] || evento.actor_mandato_tipo}
+                            {getMandatoIcon(evento.actor_mandato_tipo)} {getMandatoEventLabel(evento.actor_mandato_tipo) || evento.actor_mandato_tipo}
                         </span>
                     )}
                     {evento.actor_usuario_id && !evento.actor_mandato_tipo && (
