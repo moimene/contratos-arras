@@ -58,7 +58,7 @@ INICIADO → BORRADOR → FIRMADO → NOTARIA → TERMINADO
 | `BORRADOR` | Términos aceptados, pendiente firma | Revisar, firmar |
 | `FIRMADO` | Documento firmado en plataforma | Gestionar pagos, convocar notaría |
 | `NOTARIA` | Con cita en notaría para escritura | Subir escritura, marcar comparecencia |
-| `TERMINADO` | Compraventa completada o cerrado | Solo consulta |
+| `TERMINADO` | Compraventa completada o cerrado | Solo consulta (expediente inmutable) |
 | `LITIGIO` | En disputa por incumplimiento | Gestionar alegaciones, arbitraje |
 
 ---
@@ -90,6 +90,10 @@ sequenceDiagram
 - ✅ Como vendedor, puedo crear un contrato indicando los datos del inmueble
 - ✅ Como comprador, puedo revisar los términos antes de firmar
 - ✅ Como asesor, puedo crear contratos en nombre de mis clientes
+
+> **Nota**: La generación del contrato se articula en una **Fase 1 guiada (wizard)**.
+> La **Fase 2** comprende la firma electrónica y la ejecución del contrato desde el dashboard (documentación, notaría y pagos),
+> y la **Fase 3** la terminación normal o litigiosa del expediente.
 
 ### 2. Flujo de Firma
 
@@ -472,6 +476,8 @@ sequenceDiagram
 
 **Regla estricta**: Sin sello QTSP → Sin mandato válido
 
+Cuando un usuario actúa con mandato, la plataforma permite seleccionar explícitamente el mandato activo ("Actuando como..."). Dicha elección queda reflejada en los eventos registrados y en el **Certificado de Eventos**.
+
 ---
 
 ## Generación de Documentos
@@ -514,7 +520,7 @@ Documento probatorio que incluye:
 - Hash SHA-256 de cada evento
 - Sellos de tiempo cualificados
 - Cadena de integridad (blockchain-like)
-- Intervinientes y régimen de actuación
+- **Intervinientes y régimen de actuación** (sección específica que identifica para cada usuario su rol y, cuando procede, el mandato bajo el cual actuó)
 
 **Componente**: `CertificadoEventos.tsx`
 **Servicio**: `certificateService.ts`
