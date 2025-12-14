@@ -156,3 +156,64 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================
+ * Role Indicator (header badge)
+ * ============================================ */
+
+.role-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface-secondary, #f1f5f9);
+    border: 1px solid var(--border-light, #e2e8f0);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--text-primary, #334155);
+    transition: all 0.2s ease;
+}
+
+.role-indicator.has-urgent {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #fbbf24;
+    animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.85;
+    }
+}
+
+.role-icon {
+    font-size: 1.1rem;
+}
+
+.role-label {
+    font-weight: 500;
+}
+
+.role-tasks-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--primary, #3b82f6);
+    color: white;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.role-indicator.has-urgent .role-tasks-count {
+    background: var(--danger, #ef4444);
+}

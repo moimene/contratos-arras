@@ -144,6 +144,17 @@ export default function ContratoDashboard({
                             <EstadoBadge estado={contrato.estado} />
                         </div>
                         <div className="header-actions">
+                            {/* Role indicator - useful for QA and demos */}
+                            <span
+                                className={`role-indicator ${vm.hayTareasUrgentes ? 'has-urgent' : ''}`}
+                                title={`Rol: ${ROL_LABELS[rolActual]} (${roleSource})`}
+                            >
+                                <span className="role-icon">{ROL_ICONS[rolActual]}</span>
+                                <span className="role-label">{ROL_LABELS[rolActual]}</span>
+                                {vm.contadores.tareasParaRol > 0 && (
+                                    <span className="role-tasks-count">{vm.contadores.tareasParaRol}</span>
+                                )}
+                            </span>
                             <button onClick={handleVolverWizard} className="btn-secondary">
                                 ← Volver
                             </button>
