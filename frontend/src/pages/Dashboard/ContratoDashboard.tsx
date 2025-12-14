@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EstadoBadge from './components/EstadoBadge';
 import ResumenContrato from './components/ResumenContrato';
@@ -13,37 +12,8 @@ import ChecklistNotaria from '../../components/notaria/ChecklistNotaria';
 import { FirmaElectronica } from '../../components/firma/FirmaElectronica';
 import { EidasBadge } from '../../components/branding/TrustBadges';
 import Navbar from '../../components/layout/Navbar';
-
-interface ContratoData {
-    id: string;
-    numero_expediente: string;
-    estado: string;
-    tipo_arras: string;
-    precio_total: number;
-    importe_arras: number;
-    porcentaje_arras_calculado?: number;
-    fecha_limite_firma_escritura: string;
-    datos_wizard: any;
-    eventos: any[];
-    partes: Array<{
-        rol_en_contrato: string;
-        parte: {
-            nombre: string;
-            apellidos: string;
-            numero_documento: string;
-        };
-    }>;
-    documentos: any[];
-    mensajes: any[];
-    inmueble: {
-        direccion_completa: string;
-        ciudad: string;
-        provincia: string;
-        codigo_postal?: string;
-        referencia_catastral?: string;
-    };
-    created_at: string;
-}
+import { useContrato, type ContratoData } from '../../hooks/useContrato';
+import { showFirma, showNotaria, isPostFirma, isTerminal } from '../../domain/contrato';
 
 interface ContratoDashboardProps {
     contratoIdProp?: string;  // ID from Context (when embedded in wizard)
@@ -62,43 +32,8 @@ export default function ContratoDashboard({
     // Use prop if provided, otherwise use URL param
     const contratoId = contratoIdProp || contratoIdUrl;
 
-    const [contrato, setContrato] = useState<ContratoData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        fetchContratoData();
-    }, [contratoId]);
-
-    const fetchContratoData = async () => {
-        if (!contratoId) {
-            setError('ID de contrato no válido');
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contracts/${contratoId}`);
-
-            if (!response.ok) {
-                throw new Error('Contrato no encontrado');
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                setContrato(data.data);
-            } else {
-                throw new Error(data.error || 'Error al cargar contrato');
-            }
-        } catch (err: any) {
-            console.error('Error al cargar contrato:', err);
-            setError(err.message || 'Error al cargar el expediente');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Use the centralized hook for contract data
+    const { contrato, loading, error, refetch } = useContrato(contratoId);
 
     /**
      * Determina el paso del wizard al que debe navegar según el progreso del contrato
@@ -221,16 +156,16 @@ export default function ContratoDashboard({
                         />
 
                         {/* Panel de Firma Electrónica - Visible en BORRADOR e INICIADO */}
-                        {['INICIADO', 'BORRADOR'].includes(contrato.estado) && (
+                        {showFirma(contrato.estado) && (
                             <FirmaElectronica
                                 contratoId={contrato.id}
-                                onFirmaCompletada={fetchContratoData}
-                                onTodasFirmasCompletas={fetchContratoData}
+                                onFirmaCompletada={refetch}
+                                onTodasFirmasCompletas={refetch}
                             />
                         )}
 
                         {/* Checklist Notaría - Visible en fase NOTARIA o posterior */}
-                        {['FIRMADO', 'CONVOCATORIA_NOTARIAL', 'NOTARIA', 'ESCRITURA_OTORGADA', 'NO_COMPARECENCIA'].includes(contrato.estado) && (
+                        {showNotaria(contrato.estado) && (
                             <ChecklistNotaria contratoId={contrato.id} />
                         )}
 
