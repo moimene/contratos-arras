@@ -25,6 +25,7 @@ import inboundRoutes from './routes/inbound.js';
 import profileRoutes from './routes/profile.js';
 import organizationRoutes from './routes/organization.js';
 import roleRoutes from './routes/role.js';
+import participantesRoutes from './routes/participantes.js';
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.get('/', (_req: Request, res: Response) => {
             storage: '/api/storage',
             '🆕 claim': '/api/claim',
             '📋 inventario': '/api/contratos/:id/inventario',
+            '👥 participantes': '/api/contratos/:id/miembros',
         },
         documentation: 'Ver /docs/API.md',
     });
@@ -105,6 +107,7 @@ app.use('/api/inbound', inboundRoutes);  // Recepción de comunicaciones (emails
 app.use('/api/profile', profileRoutes);  // Perfil de usuario
 app.use('/api/organization', organizationRoutes);  // Gestión de organización
 app.use('/api/contracts', roleRoutes);  // Rol de usuario en contrato
+app.use('/api', participantesRoutes);  // Miembros, mandatos e invitaciones
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Error:', err);

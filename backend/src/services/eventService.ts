@@ -17,6 +17,7 @@ export interface RegisterEventParams {
     tipo: TipoEvento;
     payload: Record<string, any>;
     actorParteId?: string;
+    actorUsuarioId?: string;  // Usuario autenticado (SaaS auditing)
 }
 
 export interface EventResult {
