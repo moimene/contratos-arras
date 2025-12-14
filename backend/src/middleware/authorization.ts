@@ -1,34 +1,36 @@
 /**
  * Authorization Middleware - Permission-based access control
  * 
- * Checks if the current user has the required permission for the action.
+ * Resolves permissions from miembros_expediente + mandatos_expediente.
  * Returns 403 Forbidden with clear message if not authorized.
+ * 
+ * Implements the new Roles + Mandatos model:
+ * - TipoRolUsuario: system-level role (ADMIN, COMPRADOR, VENDEDOR, TERCERO, NOTARIO, OBSERVADOR)
+ * - MandatoExpediente: delegation context with explicit permissions
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../config/supabase.js';
+import type { TipoRolUsuario, TipoMandato, PermisosEfectivos, MiembroExpediente, MandatoExpediente } from '../types/models.js';
 
-// Permission types (from role.ts)
-export type Permission =
-    | 'canView'
-    | 'canUploadDocs'
-    | 'canValidateDocs'
-    | 'canRejectDocs'
-    | 'canDeleteDocs'
-    | 'canSendCommunications'
-    | 'canGenerateCertificate'
-    | 'canCreateNotaryAppointment'
-    | 'canSign';
+// ============================================
+// PERMISSION TYPES
+// ============================================
 
-export type TipoRolUsuario = 'ADMIN' | 'VENDEDOR' | 'COMPRADOR' | 'NOTARIO' | 'TERCERO' | 'OBSERVADOR';
+export type Permission = keyof PermisosEfectivos;
 
-// Admin emails (same as role.ts)
+// Admin emails for fallback
 const ADMIN_EMAILS = ['admin@chronoflare.com', 'moisesmenendez@example.com'];
 
-// Permission matrix by role
-const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
+// ============================================
+// BASE PERMISSIONS BY ROLE
+// ============================================
+
+const BASE_PERMISSIONS: Record<TipoRolUsuario, PermisosEfectivos> = {
     ADMIN: {
         canView: true,
+        canCreateContract: true,
+        canInviteUsers: true,
         canUploadDocs: true,
         canValidateDocs: true,
         canRejectDocs: true,
@@ -40,6 +42,8 @@ const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
     },
     VENDEDOR: {
         canView: true,
+        canCreateContract: true,
+        canInviteUsers: true,
         canUploadDocs: true,
         canValidateDocs: false,
         canRejectDocs: false,
@@ -51,6 +55,8 @@ const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
     },
     COMPRADOR: {
         canView: true,
+        canCreateContract: true,
+        canInviteUsers: true,
         canUploadDocs: true,
         canValidateDocs: false,
         canRejectDocs: false,
@@ -62,6 +68,8 @@ const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
     },
     NOTARIO: {
         canView: true,
+        canCreateContract: false,
+        canInviteUsers: true,
         canUploadDocs: false,
         canValidateDocs: true,
         canRejectDocs: true,
@@ -73,7 +81,9 @@ const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
     },
     TERCERO: {
         canView: true,
-        canUploadDocs: true,
+        canCreateContract: true,
+        canInviteUsers: false, // Determined by mandate.puede_invitar
+        canUploadDocs: false,  // Determined by mandate.puede_subir_documentos
         canValidateDocs: false,
         canRejectDocs: false,
         canDeleteDocs: false,
@@ -84,6 +94,8 @@ const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
     },
     OBSERVADOR: {
         canView: true,
+        canCreateContract: false,
+        canInviteUsers: false,
         canUploadDocs: false,
         canValidateDocs: false,
         canRejectDocs: false,
@@ -95,25 +107,84 @@ const ROLE_PERMISSIONS: Record<TipoRolUsuario, Record<Permission, boolean>> = {
     }
 };
 
+// ============================================
+// MEMBER AND MANDATE RESOLUTION
+// ============================================
+
+export interface AuthContext {
+    userId?: string;
+    userEmail?: string;
+    contratoId: string;
+    miembro?: MiembroExpediente;
+    mandatoActivo?: MandatoExpediente;
+    tipoRol: TipoRolUsuario;
+    permisos: PermisosEfectivos;
+    source: 'miembros_expediente' | 'contratos_partes' | 'admin_list' | 'fallback';
+}
+
 /**
- * Resolve user role for a specific contract
+ * Resolve member from miembros_expediente (new system)
  */
-async function resolveUserRole(
+async function resolveMiembro(
+    userId: string | undefined,
+    contratoId: string
+): Promise<MiembroExpediente | null> {
+    if (!userId) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('miembros_expediente')
+            .select('*')
+            .eq('contrato_id', contratoId)
+            .eq('usuario_id', userId)
+            .eq('estado_acceso', 'ACTIVO')
+            .maybeSingle();
+
+        if (error) {
+            console.warn('[auth] Error querying miembros_expediente:', error.message);
+            return null;
+        }
+
+        return data;
+    } catch (e) {
+        console.warn('[auth] Exception querying miembros_expediente:', e);
+        return null;
+    }
+}
+
+/**
+ * Get active mandates for a member
+ */
+async function getMandatosActivos(miembroId: string): Promise<MandatoExpediente[]> {
+    try {
+        const { data, error } = await supabase
+            .from('mandatos_expediente')
+            .select('*')
+            .eq('miembro_expediente_id', miembroId)
+            .eq('estado_mandato', 'ACTIVO');
+
+        if (error) {
+            console.warn('[auth] Error querying mandatos_expediente:', error.message);
+            return [];
+        }
+
+        return data || [];
+    } catch (e) {
+        console.warn('[auth] Exception querying mandatos_expediente:', e);
+        return [];
+    }
+}
+
+/**
+ * Fallback: resolve role from legacy contratos_partes
+ */
+async function resolveLegacyRole(
     userId: string | undefined,
     userEmail: string | undefined,
     contratoId: string
-): Promise<TipoRolUsuario> {
-    // No user context = OBSERVADOR
-    if (!userId && !userEmail) {
-        return 'OBSERVADOR';
-    }
+): Promise<TipoRolUsuario | null> {
+    if (!userId && !userEmail) return null;
 
-    // Check admin list
-    if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
-        return 'ADMIN';
-    }
-
-    // Check if user is linked to this contract
     try {
         const { data: parteLink } = await supabase
             .from('contratos_partes')
@@ -132,25 +203,103 @@ async function resolveUserRole(
             if (rol === 'INTERMEDIARIO') return 'TERCERO';
         }
     } catch (error) {
-        console.error('[auth] Error resolving role:', error);
+        console.warn('[auth] Error resolving legacy role:', error);
     }
 
-    return 'OBSERVADOR';
+    return null;
 }
 
 /**
- * Get permissions for a role
+ * Full authorization context resolution
+ * 
+ * Priority:
+ * 1. Admin email list → ADMIN
+ * 2. miembros_expediente (new system) → role + mandates
+ * 3. contratos_partes (legacy) → basic role
+ * 4. Fallback → OBSERVADOR
  */
-export function getPermissionsForRole(role: TipoRolUsuario): Record<Permission, boolean> {
-    return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.OBSERVADOR;
+export async function resolveAuthContext(
+    userId: string | undefined,
+    userEmail: string | undefined,
+    contratoId: string,
+    mandatoActivoId?: string
+): Promise<AuthContext> {
+    // 1. Check admin list
+    if (userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
+        return {
+            userId,
+            userEmail,
+            contratoId,
+            tipoRol: 'ADMIN',
+            permisos: BASE_PERMISSIONS.ADMIN,
+            source: 'admin_list'
+        };
+    }
+
+    // 2. Try new miembros_expediente system
+    const miembro = await resolveMiembro(userId, contratoId);
+
+    if (miembro) {
+        const mandatos = await getMandatosActivos(miembro.id);
+
+        // Select active mandate (user-specified or first)
+        let mandatoActivo: MandatoExpediente | undefined;
+        if (mandatoActivoId) {
+            mandatoActivo = mandatos.find(m => m.id === mandatoActivoId);
+        }
+        mandatoActivo = mandatoActivo || mandatos[0];
+
+        // Calculate effective permissions
+        const basePerms = { ...BASE_PERMISSIONS[miembro.tipo_rol_usuario as TipoRolUsuario] };
+
+        // For TERCERO, overlay mandate permissions
+        if (miembro.tipo_rol_usuario === 'TERCERO' && mandatoActivo) {
+            basePerms.canUploadDocs = mandatoActivo.puede_subir_documentos;
+            basePerms.canInviteUsers = mandatoActivo.puede_invitar;
+            basePerms.canValidateDocs = mandatoActivo.puede_validar_documentos;
+            basePerms.canSign = mandatoActivo.puede_firmar;
+            basePerms.canSendCommunications = mandatoActivo.puede_enviar_comunicaciones;
+        }
+
+        return {
+            userId,
+            userEmail,
+            contratoId,
+            miembro,
+            mandatoActivo,
+            tipoRol: miembro.tipo_rol_usuario as TipoRolUsuario,
+            permisos: basePerms,
+            source: 'miembros_expediente'
+        };
+    }
+
+    // 3. Fallback to legacy contratos_partes
+    const legacyRole = await resolveLegacyRole(userId, userEmail, contratoId);
+    if (legacyRole) {
+        return {
+            userId,
+            userEmail,
+            contratoId,
+            tipoRol: legacyRole,
+            permisos: BASE_PERMISSIONS[legacyRole],
+            source: 'contratos_partes'
+        };
+    }
+
+    // 4. Default to OBSERVADOR
+    return {
+        userId,
+        userEmail,
+        contratoId,
+        tipoRol: 'OBSERVADOR',
+        permisos: BASE_PERMISSIONS.OBSERVADOR,
+        source: 'fallback'
+    };
 }
 
-/**
- * Check if role has permission
- */
-export function hasPermission(role: TipoRolUsuario, permission: Permission): boolean {
-    return ROLE_PERMISSIONS[role]?.[permission] ?? false;
-}
+// ============================================
+// MIDDLEWARE
+// ============================================
 
 /**
  * Middleware factory: requirePermission
@@ -165,6 +314,7 @@ export function requirePermission(permission: Permission) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const userId = req.headers['x-user-id'] as string | undefined;
         const userEmail = req.headers['x-user-email'] as string | undefined;
+        const mandatoActivoId = req.headers['x-mandato-id'] as string | undefined;
         const contratoId = req.params.contratoId || req.params.id;
 
         if (!contratoId) {
@@ -175,30 +325,35 @@ export function requirePermission(permission: Permission) {
             return;
         }
 
-        // Resolve role for this user/contract
-        const role = await resolveUserRole(userId, userEmail, contratoId);
-        const permissions = getPermissionsForRole(role);
+        // Resolve full auth context
+        const authContext = await resolveAuthContext(userId, userEmail, contratoId, mandatoActivoId);
 
         // Check permission
-        if (!permissions[permission]) {
-            console.log(`[auth] 403 - User ${userEmail || userId || 'anonymous'} (${role}) lacks ${permission} for contract ${contratoId}`);
+        if (!authContext.permisos[permission]) {
+            console.log(`[auth] 403 - User ${userEmail || userId || 'anonymous'} (${authContext.tipoRol}) lacks ${permission} for contract ${contratoId}`);
 
             res.status(403).json({
                 success: false,
                 error: 'No tienes permiso para realizar esta acción',
                 details: {
                     requiredPermission: permission,
-                    userRole: role,
-                    message: getPermissionDeniedMessage(permission, role)
+                    userRole: authContext.tipoRol,
+                    mandato: authContext.mandatoActivo ? {
+                        id: authContext.mandatoActivo.id,
+                        tipo: authContext.mandatoActivo.tipo_mandato
+                    } : null,
+                    message: getPermissionDeniedMessage(permission, authContext.tipoRol)
                 }
             });
             return;
         }
 
-        // Attach role and permissions to request for downstream use
-        (req as any).userRole = role;
-        (req as any).userPermissions = permissions;
+        // Attach auth context to request for downstream use
+        (req as any).authContext = authContext;
+        (req as any).userRole = authContext.tipoRol;
+        (req as any).userPermissions = authContext.permisos;
         (req as any).userId = userId;
+        (req as any).mandatoActivo = authContext.mandatoActivo;
 
         next();
     };
@@ -210,6 +365,8 @@ export function requirePermission(permission: Permission) {
 function getPermissionDeniedMessage(permission: Permission, role: TipoRolUsuario): string {
     const messages: Record<Permission, string> = {
         canView: 'No tienes acceso a este expediente',
+        canCreateContract: 'No tienes permiso para crear expedientes',
+        canInviteUsers: 'No tienes permiso para invitar usuarios',
         canUploadDocs: 'Solo participantes pueden subir documentos',
         canValidateDocs: 'Solo ADMIN o NOTARIO pueden validar documentos',
         canRejectDocs: 'Solo ADMIN o NOTARIO pueden rechazar documentos',
@@ -226,22 +383,37 @@ function getPermissionDeniedMessage(permission: Permission, role: TipoRolUsuario
 /**
  * Optional middleware: attachRole
  * 
- * Attaches role and permissions to request without enforcing any permission.
+ * Attaches auth context to request without enforcing any permission.
  * Useful for routes that need to know the role but don't require a specific permission.
  */
 export function attachRole() {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const userId = req.headers['x-user-id'] as string | undefined;
         const userEmail = req.headers['x-user-email'] as string | undefined;
+        const mandatoActivoId = req.headers['x-mandato-id'] as string | undefined;
         const contratoId = req.params.contratoId || req.params.id;
 
         if (contratoId) {
-            const role = await resolveUserRole(userId, userEmail, contratoId);
-            (req as any).userRole = role;
-            (req as any).userPermissions = getPermissionsForRole(role);
+            const authContext = await resolveAuthContext(userId, userEmail, contratoId, mandatoActivoId);
+            (req as any).authContext = authContext;
+            (req as any).userRole = authContext.tipoRol;
+            (req as any).userPermissions = authContext.permisos;
+            (req as any).mandatoActivo = authContext.mandatoActivo;
         }
 
         (req as any).userId = userId;
         next();
     };
+}
+
+// ============================================
+// EXPORTS for backward compatibility
+// ============================================
+
+export function getPermissionsForRole(role: TipoRolUsuario): PermisosEfectivos {
+    return BASE_PERMISSIONS[role] || BASE_PERMISSIONS.OBSERVADOR;
+}
+
+export function hasPermission(role: TipoRolUsuario, permission: Permission): boolean {
+    return BASE_PERMISSIONS[role]?.[permission] ?? false;
 }
