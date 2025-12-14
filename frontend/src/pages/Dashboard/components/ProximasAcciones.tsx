@@ -1,112 +1,33 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
-interface ProximasAccionesProps {
-    contratoId: string;
-    estado: string;
-    firmasCompletas: boolean;
+/**
+ * Acción sugerida para el usuario.
+ * Tipo importable para uso externo.
+ */
+export interface AccionSugerida {
+    id: string;
+    icon: string;
+    titulo: string;
+    descripcion: string;
+    accion: (() => void) | null;
+    disabled: boolean;
+    primary?: boolean;
 }
 
-export default function ProximasAcciones({ contratoId, estado, firmasCompletas }: ProximasAccionesProps) {
-    const navigate = useNavigate();
+interface ProximasAccionesProps {
+    acciones: AccionSugerida[];
+}
 
-    // Determinar qué acciones mostrar según el estado
-    const getAcciones = () => {
-        // Si aún está en firma
-        if (!firmasCompletas || estado === 'BORRADOR_GENERADO' || estado === 'EN_FIRMA') {
-            return [
-                {
-                    icon: '✍️',
-                    titulo: 'Pendiente de Firmas',
-                    descripcion: 'Esperando a que todas las partes firmen el contrato',
-                    accion: null,
-                    disabled: true
-                }
-            ];
-        }
-
-        // Una vez firmado
-        if (estado === 'FIRMADO') {
-            return [
-                {
-                    icon: '📅',
-                    titulo: 'Convocar a Notaría',
-                    descripcion: 'Crear cita notarial y convocar a las partes',
-                    accion: () => navigate(`/notaria/${contratoId}`),
-                    disabled: false,
-                    primary: true
-                },
-                {
-                    icon: '📋',
-                    titulo: 'Checklist Documentos',
-                    descripcion: 'Gestionar documentación necesaria para la escritura',
-                    accion: () => navigate(`/notaria/${contratoId}`),
-                    disabled: false
-                },
-                {
-                    icon: '📜',
-                    titulo: 'Generar Certificado',
-                    descripcion: 'Emitir certificado histórico del expediente',
-                    accion: () => navigate(`/certificado/${contratoId}/generar`),
-                    disabled: false
-                }
-            ];
-        }
-
-        // Convocatoria notarial creada
-        if (estado === 'CONVOCATORIA_NOTARIAL') {
-            return [
-                {
-                    icon: '📄',
-                    titulo: 'Gestionar Documentos',
-                    descripcion: 'Subir documentación requerida para la escritura',
-                    accion: () => navigate(`/notaria/${contratoId}`),
-                    disabled: false,
-                    primary: true
-                },
-                {
-                    icon: '❌',
-                    titulo: 'Acta de No Comparecencia',
-                    descripcion: 'Generar acta si alguna parte no comparece',
-                    accion: () => navigate(`/acta/${contratoId}/crear`),
-                    disabled: false
-                }
-            ];
-        }
-
-        // Acta de no comparecencia
-        if (estado === 'ACTA_NO_COMPARECENCIA' || estado === 'NO_COMPARECENCIA') {
-            return [
-                {
-                    icon: '⏱️',
-                    titulo: 'Ventana de Alegaciones',
-                    descripcion: 'Periodo de 48h para alegaciones del no compareciente',
-                    accion: null,
-                    disabled: true
-                },
-                {
-                    icon: '📜',
-                    titulo: 'Certificado Final',
-                    descripcion: 'Emitir certificado con resultado del expediente',
-                    accion: () => navigate(`/certificado/${contratoId}/generar`),
-                    disabled: false
-                }
-            ];
-        }
-
-        // Default: opciones generales
-        return [
-            {
-                icon: '📜',
-                titulo: 'Ver Certificado',
-                descripcion: 'Consultar certificado del expediente',
-                accion: () => navigate(`/certificado/${contratoId}`),
-                disabled: false
-            }
-        ];
-    };
-
-    const acciones = getAcciones();
+/**
+ * ProximasAcciones - Dumb component que muestra las acciones sugeridas.
+ * 
+ * Este componente no conoce estados ni lógica de negocio.
+ * Las acciones son derivadas por el ViewModel y pasadas como props.
+ */
+export default function ProximasAcciones({ acciones }: ProximasAccionesProps) {
+    if (acciones.length === 0) {
+        return null;
+    }
 
     return (
         <div className="proximas-acciones-panel">
@@ -115,10 +36,10 @@ export default function ProximasAcciones({ contratoId, estado, firmasCompletas }
                 Próximas Acciones
             </h3>
             <div className="acciones-grid">
-                {acciones.map((accion, idx) => (
+                {acciones.map((accion) => (
                     <div
-                        key={idx}
-                        className={`accion-card ${accion.disabled ? 'disabled' : ''} ${'primary' in accion && accion.primary ? 'primary' : ''}`}
+                        key={accion.id}
+                        className={`accion-card ${accion.disabled ? 'disabled' : ''} ${accion.primary ? 'primary' : ''}`}
                         onClick={accion.disabled || !accion.accion ? undefined : accion.accion}
                         style={{ cursor: accion.disabled ? 'not-allowed' : 'pointer' }}
                     >

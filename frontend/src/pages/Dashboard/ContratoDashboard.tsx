@@ -13,6 +13,7 @@ import { FirmaElectronica } from '../../components/firma/FirmaElectronica';
 import { EidasBadge } from '../../components/branding/TrustBadges';
 import Navbar from '../../components/layout/Navbar';
 import { useContrato, type ContratoData } from '../../hooks/useContrato';
+import { useContratoDashboardVM } from './hooks/useContratoDashboardVM';
 import { showFirma, showNotaria, isPostFirma, isTerminal } from '../../domain/contrato';
 
 interface ContratoDashboardProps {
@@ -34,6 +35,9 @@ export default function ContratoDashboard({
 
     // Use the centralized hook for contract data
     const { contrato, loading, error, refetch } = useContrato(contratoId);
+
+    // Use the ViewModel for UI logic derivation
+    const vm = useContratoDashboardVM(contrato);
 
     /**
      * Determina el paso del wizard al que debe navegar según el progreso del contrato
@@ -149,11 +153,7 @@ export default function ContratoDashboard({
                         <StateAlert contratoId={contrato.id} currentState={contrato.estado} />
 
                         {/* Panel de Próximas Acciones */}
-                        <ProximasAcciones
-                            contratoId={contrato.id}
-                            estado={contrato.estado}
-                            firmasCompletas={contrato.estado === 'FIRMADO' || contrato.estado === 'CONVOCATORIA_NOTARIAL'}
-                        />
+                        <ProximasAcciones acciones={vm.accionesSugeridas} />
 
                         {/* Panel de Firma Electrónica - Visible en BORRADOR e INICIADO */}
                         {showFirma(contrato.estado) && (
