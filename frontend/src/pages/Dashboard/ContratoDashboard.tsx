@@ -7,6 +7,7 @@ import DashboardSection from './components/DashboardSection';
 import { EidasBadge } from '../../components/branding/TrustBadges';
 import Navbar from '../../components/layout/Navbar';
 import { useContrato } from '../../hooks/useContrato';
+import { useTipoRolUsuario, ROL_LABELS, ROL_ICONS } from '../../hooks/useTipoRolUsuario';
 import { useContratoDashboardVM } from './hooks/useContratoDashboardVM';
 import { isPostFirma } from '../../domain/contrato';
 
@@ -58,6 +59,9 @@ export default function ContratoDashboard({
 
     // Use the centralized hook for contract data
     const { contrato, loading, error, refetch } = useContrato(contratoId);
+
+    // Get the current user's role (query param > localStorage > fallback)
+    const { role: rolActual, source: roleSource } = useTipoRolUsuario();
 
     // Use the ViewModel for UI logic derivation
     const vm = useContratoDashboardVM(contrato);
@@ -193,7 +197,7 @@ export default function ContratoDashboard({
                             defaultOpen={vm.contadores.docsPendientes > 0}
                         >
                             <Suspense fallback={<SectionLoader />}>
-                                <GestorDocumental contratoId={contrato.id} rolActual="ADMIN" />
+                                <GestorDocumental contratoId={contrato.id} rolActual={rolActual} />
                             </Suspense>
                         </DashboardSection>
 
@@ -219,7 +223,7 @@ export default function ContratoDashboard({
                             defaultOpen={false}
                         >
                             <Suspense fallback={<SectionLoader />}>
-                                <GestorComunicaciones contratoId={contrato.id} rolActual="ADMIN" />
+                                <GestorComunicaciones contratoId={contrato.id} rolActual={rolActual} />
                             </Suspense>
                         </DashboardSection>
 
