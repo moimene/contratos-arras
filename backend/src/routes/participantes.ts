@@ -18,6 +18,12 @@ import type {
     EstadoMandato,
     EstadoInvitacion
 } from '../types/models.js';
+import {
+    sealMandateAttestation,
+    sealMandateRevocation,
+    type SealableMandatoTipo,
+    type AttestationResult
+} from '../services/mandateAttestationService.js';
 
 const router = Router();
 
@@ -301,7 +307,7 @@ router.post('/contratos/:contratoId/miembros/:miembroId/mandatos', async (req: R
 
 /**
  * PATCH /api/mandatos/:mandatoId/revocar
- * Revoca un mandato
+ * Revoca un mandato (con sellado QTSP)
  */
 router.patch('/mandatos/:mandatoId/revocar', async (req: Request, res: Response) => {
     try {
@@ -309,6 +315,69 @@ router.patch('/mandatos/:mandatoId/revocar', async (req: Request, res: Response)
         const { motivo } = req.body;
         const revocadorId = req.headers['x-user-id'] as string | undefined;
 
+        // First get the mandate to know contrato_id and tipo
+        const { data: existingMandato, error: findError } = await supabase
+            .from('mandatos_expediente')
+            .select(`
+                *,
+                miembro:miembros_expediente(contrato_id, usuario_id, tipo_rol_usuario)
+            `)
+            .eq('id', mandatoId)
+            .single();
+
+        if (findError || !existingMandato) {
+            return res.status(404).json({
+                success: false,
+                error: 'Mandato no encontrado'
+            });
+        }
+
+        if (existingMandato.estado_mandato === 'REVOCADO') {
+            return res.status(400).json({
+                success: false,
+                error: 'Este mandato ya está revocado'
+            });
+        }
+
+        const contratoId = existingMandato.miembro?.contrato_id;
+        const mandatoTipo = existingMandato.tipo_mandato as SealableMandatoTipo;
+
+        // STRICT RULE: Seal revocation with QTSP before persisting
+        let attestationResult: AttestationResult | null = null;
+
+        if (contratoId && ['PARTE_COMPRADORA', 'PARTE_VENDEDORA', 'AMBAS_PARTES', 'NOTARIA'].includes(mandatoTipo)) {
+            try {
+                // Get revoker info
+                const { data: revocador } = await supabase
+                    .from('perfiles')
+                    .select('id, email, nombre_completo')
+                    .eq('id', revocadorId)
+                    .single();
+
+                attestationResult = await sealMandateRevocation(
+                    contratoId,
+                    mandatoId,
+                    mandatoTipo,
+                    revocadorId || 'unknown',
+                    existingMandato.miembro?.tipo_rol_usuario || 'COMPRADOR',
+                    {
+                        ip: req.ip,
+                        userAgent: req.headers['user-agent'] as string
+                    }
+                );
+
+                console.log(`✓ Mandate revocation sealed: ${attestationResult.qtspTime}`);
+            } catch (sealError: any) {
+                console.error('QTSP sealing failed for revocation:', sealError.message);
+                return res.status(503).json({
+                    success: false,
+                    error: 'No se pudo emitir el sello cualificado para la revocación. Reintenta más tarde.',
+                    qtspError: true
+                });
+            }
+        }
+
+        // Now persist the revocation
         const { data, error } = await supabase
             .from('mandatos_expediente')
             .update({
@@ -323,7 +392,15 @@ router.patch('/mandatos/:mandatoId/revocar', async (req: Request, res: Response)
 
         if (error) throw error;
 
-        res.json({ success: true, data });
+        res.json({
+            success: true,
+            data,
+            attestation: attestationResult ? {
+                qtspProvider: attestationResult.qtspProvider,
+                qtspTime: attestationResult.qtspTime,
+                hashSha256: attestationResult.hashSha256
+            } : null
+        });
     } catch (error: any) {
         console.error('Error revocando mandato:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -520,13 +597,97 @@ router.post('/invitaciones/:token/aceptar', async (req: Request, res: Response) 
             throw miembroError;
         }
 
-        // Create mandate if TERCERO
+        // Create mandate if TERCERO (with QTSP sealing)
         let mandato = null;
+        let attestationResult: AttestationResult | null = null;
+
         if (invitacion.rol_invitado === 'TERCERO' && invitacion.tipo_mandato) {
             const permisos = invitacion.permisos_mandato || {};
+            const mandatoId = randomUUID();
+
+            // STRICT RULE: Seal mandate with QTSP before persisting
+            // If sealing fails, mandate is NOT created
+            const sealableTipo = invitacion.tipo_mandato as SealableMandatoTipo;
+
+            if (['PARTE_COMPRADORA', 'PARTE_VENDEDORA', 'AMBAS_PARTES', 'NOTARIA'].includes(invitacion.tipo_mandato)) {
+                try {
+                    // Get otorgante info (the invitation creator)
+                    const { data: creador } = await supabase
+                        .from('perfiles')
+                        .select('id, email, nombre_completo')
+                        .eq('id', invitacion.creado_por_usuario_id)
+                        .single();
+
+                    // Get mandatario info (accepting user)
+                    const { data: mandatario } = await supabase
+                        .from('perfiles')
+                        .select('id, email, nombre_completo')
+                        .eq('id', usuarioId)
+                        .single();
+
+                    // Get contrato info
+                    const { data: contrato } = await supabase
+                        .from('contratos')
+                        .select('numero_expediente')
+                        .eq('id', invitacion.contrato_id)
+                        .single();
+
+                    attestationResult = await sealMandateAttestation(
+                        {
+                            contratoId: invitacion.contrato_id,
+                            mandatoId,
+                            mandatoTipo: sealableTipo,
+                            eventType: 'MANDATO_OTORGADO',
+                            permissions: {
+                                puedeSubirDocumentos: permisos.puedeSubirDocumentos ?? true,
+                                puedeInvitar: permisos.puedeInvitar ?? false,
+                                puedeValidarDocumentos: permisos.puedeValidarDocumentos ?? false,
+                                puedeFirmar: permisos.puedeFirmar ?? false
+                            },
+                            otorgante: {
+                                usuarioId: invitacion.creado_por_usuario_id,
+                                rolSistema: 'VENDEDOR', // Default, should come from member lookup
+                                displayName: creador?.nombre_completo || creador?.email
+                            },
+                            mandatario: {
+                                usuarioId,
+                                email: mandatario?.email,
+                                displayName: mandatario?.nombre_completo,
+                                rolSistema: 'TERCERO'
+                            },
+                            invitacionId: invitacion.id,
+                            context: {
+                                ip: req.ip,
+                                userAgent: req.headers['user-agent'] as string,
+                                uiSurface: 'InviteAcceptation'
+                            }
+                        },
+                        {
+                            NUMERO_EXPEDIENTE: contrato?.numero_expediente || invitacion.contrato_id,
+                            NOMBRE_ASESOR: mandatario?.nombre_completo || 'Asesor',
+                            SI_PUEDE_SUBIR_DOCS: (permisos.puedeSubirDocumentos ?? true) ? 'true' : 'false',
+                            SI_PUEDE_INVITAR: (permisos.puedeInvitar ?? false) ? 'true' : 'false',
+                            SI_PUEDE_VALIDAR: (permisos.puedeValidarDocumentos ?? false) ? 'true' : 'false',
+                            SI_PUEDE_FIRMAR: (permisos.puedeFirmar ?? false) ? 'true' : 'false'
+                        }
+                    );
+
+                    console.log(`✓ Mandate sealed with QTSP: ${attestationResult.qtspTime}`);
+                } catch (sealError: any) {
+                    console.error('QTSP sealing failed:', sealError.message);
+                    return res.status(503).json({
+                        success: false,
+                        error: 'No se pudo emitir el sello cualificado. El mandato no ha sido creado. Reintenta más tarde.',
+                        qtspError: true
+                    });
+                }
+            }
+
+            // Now persist the mandate (QTSP seal already captured)
             const { data: mandatoData, error: mandatoError } = await supabase
                 .from('mandatos_expediente')
                 .insert({
+                    id: mandatoId,
                     miembro_expediente_id: miembro.id,
                     tipo_mandato: invitacion.tipo_mandato,
                     puede_subir_documentos: permisos.puedeSubirDocumentos ?? true,
@@ -553,30 +714,17 @@ router.post('/invitaciones/:token/aceptar', async (req: Request, res: Response) 
             })
             .eq('id', invitacion.id);
 
-        // Audit event
-        try {
-            const { registerEvent } = await import('../services/eventService.js');
-            await registerEvent({
-                contratoId: invitacion.contrato_id,
-                tipo: 'EVENTO_CUSTOM',
-                payload: {
-                    descripcion: `Invitación aceptada: ${invitacion.rol_invitado}`,
-                    invitacion_id: invitacion.id,
-                    miembro_id: miembro.id,
-                    mandato_id: mandato?.id || null
-                },
-                actorUsuarioId: usuarioId
-            });
-        } catch (eventError) {
-            console.warn('Error registrando evento:', eventError);
-        }
-
         res.json({
             success: true,
             data: {
                 miembro,
                 mandato,
-                contratoId: invitacion.contrato_id
+                contratoId: invitacion.contrato_id,
+                attestation: attestationResult ? {
+                    qtspProvider: attestationResult.qtspProvider,
+                    qtspTime: attestationResult.qtspTime,
+                    hashSha256: attestationResult.hashSha256
+                } : null
             },
             message: '¡Bienvenido al expediente!'
         });
