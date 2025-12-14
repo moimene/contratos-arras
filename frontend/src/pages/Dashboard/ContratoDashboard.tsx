@@ -1,20 +1,43 @@
+import { lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EstadoBadge from './components/EstadoBadge';
 import ResumenContrato from './components/ResumenContrato';
-import TimelineEvento from './components/TimelineEvento';
 import DashboardOverview from './components/DashboardOverview';
 import DashboardSection from './components/DashboardSection';
-import GestorDocumental from '../../components/GestorDocumental/GestorDocumental';
-import ChatPanel from '../../components/ChatPanel/ChatPanel';
-import GestorComunicaciones from '../../components/GestorComunicaciones/GestorComunicaciones';
-import CertificadoEventos from '../../components/CertificadoEventos/CertificadoEventos';
-import ChecklistNotaria from '../../components/notaria/ChecklistNotaria';
-import { FirmaElectronica } from '../../components/firma/FirmaElectronica';
 import { EidasBadge } from '../../components/branding/TrustBadges';
 import Navbar from '../../components/layout/Navbar';
 import { useContrato } from '../../hooks/useContrato';
 import { useContratoDashboardVM } from './hooks/useContratoDashboardVM';
-import { showFirma, showNotaria, isPostFirma } from '../../domain/contrato';
+import { isPostFirma } from '../../domain/contrato';
+
+// =============================================================================
+// LAZY LOADED COMPONENTS - Solo se cargan cuando la sección se expande
+// =============================================================================
+
+// Componentes críticos (first fold) - carga síncrona
+// EstadoBadge, ResumenContrato, DashboardOverview ya están arriba
+
+// Componentes secundarios - lazy load
+const TimelineEvento = lazy(() => import('./components/TimelineEvento'));
+const GestorDocumental = lazy(() => import('../../components/GestorDocumental/GestorDocumental'));
+const GestorComunicaciones = lazy(() => import('../../components/GestorComunicaciones/GestorComunicaciones'));
+const CertificadoEventos = lazy(() => import('../../components/CertificadoEventos/CertificadoEventos'));
+const ChatPanel = lazy(() => import('../../components/ChatPanel/ChatPanel'));
+const ChecklistNotaria = lazy(() => import('../../components/notaria/ChecklistNotaria'));
+const FirmaElectronica = lazy(() =>
+    import('../../components/firma/FirmaElectronica').then(m => ({ default: m.FirmaElectronica }))
+);
+
+// Fallback de carga para secciones
+function SectionLoader() {
+    return (
+        <div className="section-loading">
+            <div className="loading-spinner small" />
+            <span>Cargando...</span>
+        </div>
+    );
+}
+
 
 interface ContratoDashboardProps {
     contratoIdProp?: string;  // ID from Context (when embedded in wizard)
@@ -150,11 +173,13 @@ export default function ContratoDashboard({
                                 icon="✍️"
                                 defaultOpen={true}
                             >
-                                <FirmaElectronica
-                                    contratoId={contrato.id}
-                                    onFirmaCompletada={refetch}
-                                    onTodasFirmasCompletas={refetch}
-                                />
+                                <Suspense fallback={<SectionLoader />}>
+                                    <FirmaElectronica
+                                        contratoId={contrato.id}
+                                        onFirmaCompletada={refetch}
+                                        onTodasFirmasCompletas={refetch}
+                                    />
+                                </Suspense>
                             </DashboardSection>
                         )}
 
@@ -167,7 +192,9 @@ export default function ContratoDashboard({
                             badgeType={vm.contadores.docsPendientes > 0 ? 'warning' : 'info'}
                             defaultOpen={vm.contadores.docsPendientes > 0}
                         >
-                            <GestorDocumental contratoId={contrato.id} rolActual="ADMIN" />
+                            <Suspense fallback={<SectionLoader />}>
+                                <GestorDocumental contratoId={contrato.id} rolActual="ADMIN" />
+                            </Suspense>
                         </DashboardSection>
 
                         {/* Sección Notaría - Solo visible post-firma */}
@@ -178,7 +205,9 @@ export default function ContratoDashboard({
                                 icon="⚖️"
                                 defaultOpen={true}
                             >
-                                <ChecklistNotaria contratoId={contrato.id} />
+                                <Suspense fallback={<SectionLoader />}>
+                                    <ChecklistNotaria contratoId={contrato.id} />
+                                </Suspense>
                             </DashboardSection>
                         )}
 
@@ -189,7 +218,9 @@ export default function ContratoDashboard({
                             icon="📧"
                             defaultOpen={false}
                         >
-                            <GestorComunicaciones contratoId={contrato.id} rolActual="ADMIN" />
+                            <Suspense fallback={<SectionLoader />}>
+                                <GestorComunicaciones contratoId={contrato.id} rolActual="ADMIN" />
+                            </Suspense>
                         </DashboardSection>
 
                         {/* Sección Timeline */}
@@ -201,7 +232,9 @@ export default function ContratoDashboard({
                             badgeType="info"
                             defaultOpen={false}
                         >
-                            <TimelineEvento eventos={contrato.eventos || []} />
+                            <Suspense fallback={<SectionLoader />}>
+                                <TimelineEvento eventos={contrato.eventos || []} />
+                            </Suspense>
                         </DashboardSection>
 
                         {/* Sección Certificado */}
@@ -211,7 +244,9 @@ export default function ContratoDashboard({
                             icon="📜"
                             defaultOpen={false}
                         >
-                            <CertificadoEventos contratoId={contrato.id} />
+                            <Suspense fallback={<SectionLoader />}>
+                                <CertificadoEventos contratoId={contrato.id} />
+                            </Suspense>
                         </DashboardSection>
 
                         {/* Sección Chat */}
@@ -221,8 +256,11 @@ export default function ContratoDashboard({
                             icon="💬"
                             defaultOpen={false}
                         >
-                            <ChatPanel contratoId={contrato.id} />
+                            <Suspense fallback={<SectionLoader />}>
+                                <ChatPanel contratoId={contrato.id} />
+                            </Suspense>
                         </DashboardSection>
+
                     </main>
                 </div>
             </div>
