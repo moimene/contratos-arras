@@ -21,6 +21,7 @@ import {
 import multer from 'multer';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
+import { requirePermission } from '../middleware/authorization.js';
 
 const router = Router();
 
@@ -390,8 +391,9 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
 /**
  * POST /api/inventario/:id/validar
  * Valida un documento del inventario
+ * Requiere: canValidateDocs (ADMIN, NOTARIO)
  */
-router.post('/inventario/:id/validar', async (req: Request, res: Response) => {
+router.post('/inventario/:id/validar', requirePermission('canValidateDocs'), async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { validadorRol, validadorUsuario } = req.body;
@@ -412,8 +414,9 @@ router.post('/inventario/:id/validar', async (req: Request, res: Response) => {
 /**
  * POST /api/inventario/:id/rechazar
  * Rechaza un documento del inventario
+ * Requiere: canRejectDocs (ADMIN, NOTARIO)
  */
-router.post('/inventario/:id/rechazar', async (req: Request, res: Response) => {
+router.post('/inventario/:id/rechazar', requirePermission('canRejectDocs'), async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { motivo, validadorRol, validadorUsuario } = req.body;
@@ -491,8 +494,9 @@ router.post('/archivos/:id/reemplazar', upload.single('file'), async (req: Reque
 /**
  * POST /api/contratos/:contratoId/inventario/adhoc
  * Crea un requisito documental ad-hoc
+ * Requiere: canUploadDocs (ADMIN, VENDEDOR, COMPRADOR, TERCERO)
  */
-router.post('/contratos/:contratoId/inventario/adhoc', async (req: Request, res: Response) => {
+router.post('/contratos/:contratoId/inventario/adhoc', requirePermission('canUploadDocs'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
         const {
