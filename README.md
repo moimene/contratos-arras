@@ -9,11 +9,13 @@
 1. [Visión General](#visión-general)
 2. [Estados del Contrato](#estados-del-contrato)
 3. [Flujos Principales](#flujos-principales)
-4. [Sistema de Roles y Mandatos](#sistema-de-roles-y-mandatos)
-5. [Generación de Documentos](#generación-de-documentos)
-6. [Auditoría y Certificación](#auditoría-y-certificación)
-7. [API Endpoints](#api-endpoints)
-8. [Arquitectura Técnica](#arquitectura-técnica)
+4. [Motor de Plantillas Contractuales](#motor-de-plantillas-contractuales)
+5. [Inventario Dinámico de Documentos](#inventario-dinámico-de-documentos)
+6. [Comunicaciones Estructuradas](#comunicaciones-estructuradas)
+7. [Sistema de Roles y Mandatos](#sistema-de-roles-y-mandatos)
+8. [Auditoría y Certificación](#auditoría-y-certificación)
+9. [API Endpoints](#api-endpoints)
+10. [Arquitectura Técnica](#arquitectura-técnica)
 
 ---
 
@@ -139,6 +141,8 @@ El sistema clasifica documentos en categorías legales:
 3. Contraparte puede validar → `DOCUMENTO_VALIDADO`
 4. O rechazar con motivo → `DOCUMENTO_RECHAZADO`
 
+> **Ver también**: [Índice de items del inventario dinámico](#inventario-dinámico-de-documentos)
+
 ### 4. Flujo de Convocatoria Notarial
 
 ```mermaid
@@ -227,6 +231,182 @@ graph TD
 **Tipos de resolución configurables:**
 - `JUZGADOS`: Vía judicial ordinaria
 - `ARBITRAJE_NOTARIAL`: Arbitraje ante notario
+
+**Consecuencias según tipo de arras:**
+
+| Tipo Arras | Si COMPRADOR incumple | Si VENDEDOR incumple |
+|------------|----------------------|---------------------|
+| **Penitenciales** | Pérdida de arras entregadas | Devolución por duplicado |
+| **Confirmatorias** | Cumplimiento forzoso o resolución + daños | Cumplimiento forzoso o resolución + daños |
+| **Penales** | Penalización pactada (sin resolver) | Penalización pactada (sin resolver) |
+
+El **Certificado de Eventos** refleja: qué tipo de arras se pactaron, quién declaró qué incumplimiento, cuándo, y con qué comunicaciones de soporte.
+
+---
+
+## Motor de Plantillas Contractuales
+
+El sistema no es un simple "merge de variables". Es un **motor de composición contractual basado en condiciones** que selecciona cláusulas según el supuesto.
+
+### Modo Estándar Observatorio
+
+Se utiliza el **modelo Observatorio Garrigues-ICADE** cuando:
+- Objeto = vivienda
+- Derecho = común
+- Sin hipoteca pendiente
+- Sin arrendatarios
+- Arras = penitenciales
+
+En este caso, se genera Portada + Términos Estándar sin reescribir cláusulas, solo completando casillas y corchetes.
+
+### Plantillas Alternativas
+
+Si las condiciones no encajan con el modo estándar, el motor activa **variantes**:
+
+| Condición | Acción del Motor |
+|-----------|------------------|
+| `tipoArras = CONFIRMATORIAS` | Sustituye cláusula 5 por "arras confirmatorias" (sin desistimiento) |
+| `tipoArras = PENALES` | Sustituye por "cláusula penal" |
+| `objeto ≠ VIVIENDA` | Cambia 1.3 + bloque impuestos a versión "no vivienda" |
+| `sinHipoteca = false` | Añade cláusula "Cancelación de cargas hipotecarias" con retención |
+| `sinArrendatarios = false` | Ajusta 1.3(c): entrega libre o subrogación (según Portada) |
+| `derecho = FORAL` | Añade aviso de adecuación foral en "Ley aplicable" |
+| `formaPagoArras = ESCROW` | Sustituye cláusula 2.2 por pago en depósito/escrow |
+| `retenciones > 0` | Añade cláusula de retenciones en bloque gastos/impuestos |
+| `mobiliarioEquipamiento = true` | Añade cláusula de mobiliario con inventario anexo |
+
+### Validación en UI (Wizard)
+
+| Si detecta... | Entonces... |
+|---------------|-------------|
+| Arras ≠ penitenciales | Bloquea texto de desistimiento, activa confirmatorias/penales |
+| Objeto ≠ vivienda | Activa versión "no vivienda" |
+| Escrow activo | Exige datos de depositario y condiciones |
+| Vivienda arrendada | Exige ficha de arrendamiento y elección entrega libre/subrogación |
+| Hipoteca pendiente | Exige datos de carga y forma de cancelación |
+
+**Implementación**: `contracts/template-utils.ts`, `pdfService.ts`
+
+---
+
+## Inventario Dinámico de Documentos
+
+No es solo un "gestor de PDFs". Es un **checklist jurídico-documental** que controla qué documentación falta, quién debe aportarla, y qué transiciones bloquea.
+
+### Estructura de Item de Inventario
+
+```typescript
+{
+  id: string;
+  contratoId: string;
+  tipo: TipoDocumento;         // NOTA_SIMPLE, IBI, CEE, PODER_COMPRADOR...
+  estado: 'PENDIENTE' | 'SUBIDO' | 'VALIDADO' | 'RECHAZADO';
+  responsableRol: TipoRolUsuario;  // Quién debe subir
+  archivoId?: string;          // Referencia a archivo subido
+  metadatos?: {
+    caducidad?: string;        // Para docs con vigencia
+    csvRegistro?: string;      // Código seguro de verificación
+    numeroFinca?: string;      // Para nota simple
+  };
+}
+```
+
+### Bloques de Documentación
+
+#### Bloque Inmueble (responsable: VENDEDOR)
+
+| Documento | Obligatorio | Notas |
+|-----------|-------------|-------|
+| Nota Simple | ✅ | Vigencia < 3 meses |
+| Escritura anterior | ✅ | Título de propiedad |
+| Recibo IBI | ✅ | Último pagado |
+| Certificado comunidad | ✅ | Libre de deudas |
+| Certificado Energético (CEE) | ✅ | Obligatorio para venta |
+
+#### Bloque Identidad (responsable: CADA PARTE)
+
+| Documento | Obligatorio | Notas |
+|-----------|-------------|-------|
+| DNI/NIE Comprador | ✅ | En vigor |
+| DNI/NIE Vendedor | ✅ | En vigor |
+| Poderes (si tercero) | Condicional | Si firma asesor |
+
+#### Bloque Notaría y Escritura (responsable: NOTARIO + PARTES)
+
+| Documento | Obligatorio | Notas |
+|-----------|-------------|-------|
+| Minuta escritura | ✅ | Generada por notaría |
+| Escritura compraventa firmada | ✅ | Bloquea TERMINADO |
+| Contrato arras firmado | ✅ | Ya en sistema |
+| Justificantes de pago arras | ✅ | Anteriores a escritura |
+| Certificado hipoteca cancelada | Condicional | Si había carga |
+| Contrato arrendamiento | Condicional | Si vivienda ocupada |
+| Inventario mobiliario | Condicional | Si se incluye mobiliario |
+| Acta no comparecencia | Condicional | Si hubo |
+
+### Gating de Transiciones
+
+| Transición | Items requeridos en VALIDADO |
+|------------|-----------------------------|
+| `FIRMADO` → `NOTARIA` | Nota simple, IBI, CEE, arras pagadas |
+| `NOTARIA` → `TERMINADO` | Escritura firmada |
+| Litigio por no pago | Justificantes de pago ausentes |
+
+---
+
+## Comunicaciones Estructuradas
+
+No es un "chat genérico". Es un **motor de comunicaciones con valor probatorio** donde cada mensaje tiene tipo, genera eventos, y se integra con otros flujos.
+
+### Tipos de Comunicación
+
+| Tipo | Descripción | Integra con |
+|------|-------------|-------------|
+| `MENSAJE_GENERAL` | Comunicación libre estructurada | — |
+| `RECLAMACION` | Reclamación formal (impago, plazos, defectos) | Litigio |
+| `ENTREGA_DOCUMENTACION` | Aviso de documento subido | Inventario |
+| `SOLICITUD_DOCUMENTACION` | Petición de documento faltante | Inventario |
+| `SOLICITUD_MODIFICACION_TERMINOS` | Propuesta de cambio contractual | Motor plantillas |
+| `CONVOCATORIA_NOTARIA` | Citación formal a escritura | Notaría |
+| `MODIFICACION_CITA` | Cambio de fecha/hora/lugar | Notaría |
+| `ANULACION_CITA` | Cancelación de cita | Notaría |
+| `NO_COMPARECENCIA_NOTIFICADA` | Aviso formal de incomparecencia | Terminación |
+| `CONSECUENCIAS_NO_COMPARECENCIA` | Declaración de efectos | Litigio |
+| `ALEGACIONES_NO_COMPARECENCIA` | Respuesta del no compareciente | Ventana 48h |
+| `MENSAJE_SISTEMA` | Recordatorios, cambios de estado | — |
+| `COMUNICACION_EXTERNA_IMPORTADA` | Email/burofax importado | Auditoría |
+
+### Flujo de Comunicación Probatoria
+
+```mermaid
+sequenceDiagram
+    participant E as Emisor
+    participant B as Backend
+    participant Q as QTSP
+    participant D as Destinatario
+
+    E->>B: POST /mensajes (tipo=RECLAMACION)
+    B->>B: Validar permisos emisor
+    B->>B: Hash contenido
+    B->>Q: Sellar comunicación
+    Q-->>B: TST token
+    B->>B: Evento COMUNICACION_ENVIADA
+    B->>B: Notificar destinatario
+    B-->>E: Confirmación + hash
+    D->>B: Ver mensaje
+    B->>B: Registrar lectura
+```
+
+### Comunicaciones + Terminación
+
+| Fase | Comunicaciones relevantes |
+|------|---------------------------|
+| Pre-escritura | Convocatoria, recordatorios |
+| No comparecencia | Notificación, acta, alegaciones |
+| Litigio | Reclamaciones, consecuencias |
+| Resolución | Acuerdo o sentencia |
+
+Todas quedan en el **Certificado de Eventos** con hash y sello.
 
 ---
 
