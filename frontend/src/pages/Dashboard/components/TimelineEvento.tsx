@@ -7,9 +7,20 @@ interface Evento {
     payload_json: any;
     fecha_hora: string;
     actor_tipo: string;
-    actor_usuario_id?: string;  // Usuario autenticado (auditoría)
+    actor_usuario_id?: string;      // Usuario autenticado (auditoría)
+    actor_mandato_id?: string;      // ID del mandato bajo el cual actuó
+    actor_mandato_tipo?: string;    // Tipo de mandato (denormalizado)
     hash_sha256: string;
 }
+
+// Labels para mandatos (probatorio)
+const MANDATO_LABELS: Record<string, string> = {
+    PARTE_COMPRADORA: 'Asesor de la parte compradora',
+    PARTE_VENDEDORA: 'Asesor de la parte vendedora',
+    AMBAS_PARTES: 'Asesor de ambas partes',
+    NOTARIA: 'Notaría',
+    OBSERVADOR_TECNICO: 'Observador técnico'
+};
 
 interface TimelineEventoProps {
     eventos: Evento[];
@@ -94,7 +105,12 @@ function TimelineItem({ evento, isLast, formatFecha }: TimelineItemProps) {
                     {evento.actor_tipo && (
                         <span className="actor-tag">{evento.actor_tipo}</span>
                     )}
-                    {evento.actor_usuario_id && (
+                    {evento.actor_mandato_tipo && (
+                        <span className="actor-mandato" title={`Mandato: ${evento.actor_mandato_tipo}`}>
+                            🧭 {MANDATO_LABELS[evento.actor_mandato_tipo] || evento.actor_mandato_tipo}
+                        </span>
+                    )}
+                    {evento.actor_usuario_id && !evento.actor_mandato_tipo && (
                         <span className="actor-user" title={`Usuario: ${evento.actor_usuario_id}`}>
                             👤 Usuario autenticado
                         </span>

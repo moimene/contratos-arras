@@ -17,7 +17,9 @@ export interface RegisterEventParams {
     tipo: TipoEvento;
     payload: Record<string, any>;
     actorParteId?: string;
-    actorUsuarioId?: string;  // Usuario autenticado (SaaS auditing)
+    actorUsuarioId?: string;      // Usuario autenticado (SaaS auditing)
+    actorMandatoId?: string;      // ID del mandato bajo el cual actúa
+    actorMandatoTipo?: string;    // Tipo de mandato (denormalizado para lectura probatoria)
 }
 
 export interface EventResult {
@@ -33,7 +35,7 @@ export interface EventResult {
 export async function registerEvent(
     params: RegisterEventParams
 ): Promise<EventResult> {
-    const { contratoId, tipo, payload, actorParteId } = params;
+    const { contratoId, tipo, payload, actorParteId, actorUsuarioId, actorMandatoId, actorMandatoTipo } = params;
 
     // 1. Canonicalizar payload
     const canonical = canonicalize(payload);
@@ -70,7 +72,6 @@ export async function registerEvent(
 
     if (selloError) throw selloError;
 
-    // 5. Guardar evento
     const eventoId = uuid();
     const { error: eventoError } = await supabase
         .from('eventos')
@@ -79,6 +80,9 @@ export async function registerEvent(
             contrato_id: contratoId,
             tipo,
             actor_parte_id: actorParteId || null,
+            actor_usuario_id: actorUsuarioId || null,
+            actor_mandato_id: actorMandatoId || null,
+            actor_mandato_tipo: actorMandatoTipo || null,
             payload_json: JSON.parse(canonical),
             hash_sha256: hash,
             prev_hash_sha256: prevHashSha256 || null,
