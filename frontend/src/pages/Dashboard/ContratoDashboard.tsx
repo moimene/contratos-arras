@@ -63,8 +63,8 @@ export default function ContratoDashboard({
     // Get the current user's role (query param > localStorage > fallback)
     const { role: rolActual, source: roleSource } = useTipoRolUsuario();
 
-    // Use the ViewModel for UI logic derivation
-    const vm = useContratoDashboardVM(contrato);
+    // Use the ViewModel for UI logic derivation (with role for task engine)
+    const vm = useContratoDashboardVM(contrato, rolActual);
 
     /**
      * Determina el paso del wizard al que debe navegar según el progreso del contrato

@@ -4,7 +4,7 @@
  * ViewModel para el Dashboard del contrato.
  * Centraliza toda la lógica de derivación de datos UI:
  * - Fase del contrato
- * - Acciones sugeridas
+ * - Acciones sugeridas (basadas en useTaskEngine por rol)
  * - Flags de visibilidad
  * - Contadores de documentos
  */
@@ -12,6 +12,8 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ContratoData } from '../../../hooks/useContrato';
+import type { TipoRolUsuario } from '../../../hooks/useTipoRolUsuario';
+import { useTaskEngine, type Tarea, type TipoRolUsuario as TaskRol } from '../../../hooks/useTaskEngine';
 import {
     getFase,
     showFirma,
@@ -33,6 +35,7 @@ export interface AccionSugerida {
     accion: (() => void) | null;
     disabled: boolean;
     primary?: boolean;
+    prioridad?: 'URGENTE' | 'ALTA' | 'NORMAL' | 'BAJA';
 }
 
 export interface SeccionConfig {
@@ -47,8 +50,11 @@ export interface ContratoDashboardVM {
     // Fase del contrato
     fase: FaseContrato;
 
-    // Acciones sugeridas para el usuario
+    // Acciones sugeridas para el usuario (basadas en rol)
     accionesSugeridas: AccionSugerida[];
+
+    // Tareas urgentes del motor
+    hayTareasUrgentes: boolean;
 
     // Flags de visibilidad de secciones
     flags: {
@@ -65,6 +71,7 @@ export interface ContratoDashboardVM {
         docsValidados: number;
         docsRechazados: number;
         eventosTotal: number;
+        tareasParaRol: number;
     };
 
     // Navegación
@@ -78,8 +85,30 @@ export interface ContratoDashboardVM {
 // HOOK
 // ============================================================================
 
-export function useContratoDashboardVM(contrato: ContratoData | null): ContratoDashboardVM {
+export function useContratoDashboardVM(
+    contrato: ContratoData | null,
+    rolActual: TipoRolUsuario = 'OBSERVADOR'
+): ContratoDashboardVM {
     const navigate = useNavigate();
+
+    // Usar el motor de tareas para generar acciones según rol
+    const contratoParaEngine = contrato ? [{
+        id: contrato.id,
+        numero_expediente: contrato.numero_expediente,
+        estado: contrato.estado as any,
+        fecha_limite_firma_escritura: contrato.fecha_limite_firma_escritura,
+        fecha_limite_pago_arras: (contrato as any).fecha_limite_pago_arras,
+        arras_acreditadas_at: (contrato as any).arras_acreditadas_at,
+    }] : [];
+
+    const {
+        tareas,
+        tareasUrgentes,
+        hayUrgentes
+    } = useTaskEngine({
+        contratos: contratoParaEngine,
+        rol: rolActual as TaskRol
+    });
 
     // Memoizar toda la derivación de datos
     return useMemo(() => {
@@ -90,7 +119,6 @@ export function useContratoDashboardVM(contrato: ContratoData | null): ContratoD
 
         const estado = contrato.estado;
         const fase = getFase(estado);
-        const contratoId = contrato.id;
 
         // Derivar flags de visibilidad
         const flags = {
@@ -101,10 +129,13 @@ export function useContratoDashboardVM(contrato: ContratoData | null): ContratoD
         };
 
         // Derivar contadores de documentos
-        const contadores = deriveContadores(contrato);
+        const contadores = {
+            ...deriveContadores(contrato),
+            tareasParaRol: tareas.length,
+        };
 
-        // Derivar acciones sugeridas según estado
-        const accionesSugeridas = deriveAcciones(contrato, navigate);
+        // Derivar acciones desde useTaskEngine
+        const accionesSugeridas = mapTareasToAcciones(tareas, navigate);
 
         // Configuración de secciones
         const secciones = deriveSecciones(contrato, contadores);
@@ -120,13 +151,56 @@ export function useContratoDashboardVM(contrato: ContratoData | null): ContratoD
         return {
             fase,
             accionesSugeridas,
+            hayTareasUrgentes: hayUrgentes,
             flags,
             contadores,
             onGoTo,
             secciones,
         };
-    }, [contrato, navigate]);
+    }, [contrato, navigate, tareas, hayUrgentes]);
 }
+
+// ============================================================================
+// MAPEO TAREA → ACCION
+// ============================================================================
+
+function mapTareasToAcciones(
+    tareas: Tarea[],
+    navigate: ReturnType<typeof useNavigate>
+): AccionSugerida[] {
+    if (tareas.length === 0) {
+        return [{
+            id: 'sin-acciones',
+            icon: '✅',
+            titulo: 'Sin acciones pendientes',
+            descripcion: 'No hay tareas asignadas para tu rol en este momento',
+            accion: null,
+            disabled: true
+        }];
+    }
+
+    return tareas.map(tarea => ({
+        id: tarea.id,
+        icon: getPrioridadIcon(tarea.prioridad),
+        titulo: tarea.titulo,
+        descripcion: tarea.descripcion,
+        accion: tarea.accion ? () => navigate(tarea.accion!.ruta) : null,
+        disabled: !tarea.accion,
+        primary: tarea.prioridad === 'URGENTE' || tarea.prioridad === 'ALTA',
+        prioridad: tarea.prioridad
+    }));
+}
+
+function getPrioridadIcon(prioridad: string): string {
+    switch (prioridad) {
+        case 'URGENTE': return '🚨';
+        case 'ALTA': return '⚡';
+        case 'NORMAL': return '📋';
+        case 'BAJA': return '📌';
+        default: return '📋';
+    }
+}
+
 
 // ============================================================================
 // FUNCIONES DE DERIVACIÓN
@@ -136,6 +210,7 @@ function getDefaultVM(): ContratoDashboardVM {
     return {
         fase: 'WIZARD',
         accionesSugeridas: [],
+        hayTareasUrgentes: false,
         flags: {
             showFirma: false,
             showNotaria: false,
@@ -148,6 +223,7 @@ function getDefaultVM(): ContratoDashboardVM {
             docsValidados: 0,
             docsRechazados: 0,
             eventosTotal: 0,
+            tareasParaRol: 0,
         },
         onGoTo: () => { },
         secciones: [],
