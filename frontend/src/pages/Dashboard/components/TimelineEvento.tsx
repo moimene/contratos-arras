@@ -7,6 +7,7 @@ interface Evento {
     payload_json: any;
     fecha_hora: string;
     actor_tipo: string;
+    actor_usuario_id?: string;  // Usuario autenticado (auditoría)
     hash_sha256: string;
 }
 
@@ -89,11 +90,16 @@ function TimelineItem({ evento, isLast, formatFecha }: TimelineItemProps) {
                     <span className="timeline-fecha">{formatFecha(evento.fecha_hora)}</span>
                 </div>
 
-                {evento.actor_tipo && (
-                    <div className="timeline-actor">
-                        Actor: <span className="actor-tag">{evento.actor_tipo}</span>
-                    </div>
-                )}
+                <div className="timeline-actor">
+                    {evento.actor_tipo && (
+                        <span className="actor-tag">{evento.actor_tipo}</span>
+                    )}
+                    {evento.actor_usuario_id && (
+                        <span className="actor-user" title={`Usuario: ${evento.actor_usuario_id}`}>
+                            👤 Usuario autenticado
+                        </span>
+                    )}
+                </div>
 
                 {hasPayload && (
                     <details

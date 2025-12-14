@@ -17,6 +17,7 @@ export interface FirmaElectronicaData {
     parteId: string;
     versionHash: string;
     documentoHash: string;
+    userId?: string;      // Usuario autenticado para auditoría
     ipAddress?: string;
     userAgent?: string;
 }
@@ -138,7 +139,7 @@ class FirmaService {
         }
 
         // 6. Crear evento en timeline
-        await this.crearEventoFirma(contratoId, parteId, tst);
+        await this.crearEventoFirma(contratoId, parteId, tst, data.userId);
 
         // 7. Verificar si todas las firmas están completas
         const estadoFirmas = await this.obtenerEstadoFirmas(contratoId);
@@ -318,7 +319,7 @@ class FirmaService {
     // MÉTODOS PRIVADOS
     // ================================================
 
-    private async crearEventoFirma(contratoId: string, parteId: string, tst: any): Promise<void> {
+    private async crearEventoFirma(contratoId: string, parteId: string, tst: any, userId?: string): Promise<void> {
         const payload = {
             tipo: 'FIRMA_REGISTRADA',
             parteId,
@@ -333,7 +334,8 @@ class FirmaService {
             tst_fecha: tst.fecha.toISOString(),
             tst_token: tst.token,
             tst_proveedor: tst.proveedor,
-            actor_tipo: 'COMPRADOR', // TODO: determinar si es COMPRADOR o VENDEDOR
+            actor_tipo: 'COMPRADOR', // TODO: determinar desde el rol
+            actor_usuario_id: userId || null,
         });
     }
 
