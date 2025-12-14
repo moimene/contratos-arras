@@ -1,0 +1,231 @@
+/**
+ * ParticipantesPanel Styles
+ */
+
+.participantes-panel {
+    background: var(--bg-secondary, #1a1a2e);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.participantes-panel.loading,
+.participantes-panel.error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    justify-content: center;
+    color: var(--text-secondary, #888);
+}
+
+/* Tabs */
+.panel-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #333);
+    padding-bottom: 0.5rem;
+}
+
+.panel-tabs .tab {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s ease;
+}
+
+.panel-tabs .tab:hover {
+    color: var(--text-primary, #fff);
+    background: var(--bg-tertiary, #252540);
+}
+
+.panel-tabs .tab.active {
+    color: var(--color-primary, #6c5ce7);
+    background: var(--bg-tertiary, #252540);
+    border-bottom: 2px solid var(--color-primary, #6c5ce7);
+}
+
+.btn-invite {
+    margin-left: auto;
+    padding: 0.4rem 1rem;
+    background: var(--color-primary, #6c5ce7);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.btn-invite:hover {
+    background: var(--color-primary-dark, #5b4cdb);
+}
+
+/* Content */
+.panel-content {
+    min-height: 200px;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-secondary, #888);
+    padding: 2rem;
+}
+
+/* Miembros Grid */
+.miembros-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.miembro-card,
+.invitacion-card {
+    background: var(--bg-tertiary, #252540);
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid var(--border-color, #333);
+}
+
+.miembro-header,
+.invitacion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.rol-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary, #1a1a2e);
+    border-radius: 8px;
+}
+
+.miembro-info,
+.invitacion-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.miembro-info strong,
+.invitacion-info strong {
+    color: var(--text-primary, #fff);
+    font-size: 0.95rem;
+}
+
+.rol-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+}
+
+.estado-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+/* Mandatos */
+.mandatos-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-color, #333);
+}
+
+.mandato-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-secondary, #1a1a2e);
+    padding: 0.35rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+}
+
+.permisos-icons {
+    display: flex;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+/* Actions */
+.miembro-actions,
+.invitacion-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-color, #333);
+}
+
+.invitacion-meta {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, #666);
+}
+
+.btn-small {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: var(--bg-secondary, #1a1a2e);
+    color: var(--text-secondary, #888);
+    transition: all 0.2s ease;
+}
+
+.btn-small:hover {
+    background: var(--bg-primary, #0f0f1a);
+    color: var(--text-primary, #fff);
+}
+
+.btn-small.btn-danger {
+    color: var(--color-error, #e74c3c);
+}
+
+.btn-small.btn-danger:hover {
+    background: var(--color-error, #e74c3c);
+    color: white;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-secondary, #1a1a2e);
+    padding: 2rem;
+    border-radius: 12px;
+    min-width: 400px;
+    max-width: 90vw;
+    border: 1px solid var(--border-color, #333);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: var(--text-primary, #fff);
+}
