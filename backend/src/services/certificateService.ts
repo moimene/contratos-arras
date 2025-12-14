@@ -8,6 +8,7 @@
 import { createHash } from 'crypto';
 import { supabase } from '../config/supabase.js';
 import { requestQualifiedTimestamp } from '../qtsp/eadTrustClient.js';
+import { getRolCertificateLabel, getMandatoCertificateLabel } from '../domain/mandatos/index.js';
 
 interface EventoCompleto {
     id: string;
@@ -37,6 +38,17 @@ interface DocumentoResumen {
     estado: string;
     hash_sha256: string | null;
     created_at: string;
+}
+
+interface IntervinienteResumen {
+    id: string;
+    nombre: string;
+    email: string | null;
+    rol: string;
+    rolLabel: string;
+    mandatoTipo: string | null;
+    mandatoLabel: string | null;
+    fechaAltaMandato: string | null;
 }
 
 export interface CertificadoEventos {
@@ -97,6 +109,17 @@ export async function generateEventsCertificate(contratoId: string): Promise<Cer
         .eq('contrato_id', contratoId)
         .order('created_at', { ascending: true });
 
+    // 5. Obtener miembros con mandatos
+    const { data: miembros } = await supabase
+        .from('miembros_expediente')
+        .select(`
+            *,
+            usuario:perfiles(id, email, nombre_completo),
+            mandatos:mandatos_expediente(id, tipo_mandato, estado_mandato, created_at)
+        `)
+        .eq('contrato_id', contratoId)
+        .eq('estado_acceso', 'ACTIVO');
+
     // 5. Formatear datos
     const eventosFormateados: EventoCompleto[] = (eventos || []).map(e => ({
         id: e.id,
@@ -130,13 +153,29 @@ export async function generateEventsCertificate(contratoId: string): Promise<Cer
         created_at: d.created_at
     }));
 
-    // 6. Generar contenido HTML
+    // Formatear intervinientes
+    const intervinientesFormateados: IntervinienteResumen[] = (miembros || []).map((m: any) => {
+        const mandatoActivo = m.mandatos?.find((ma: any) => ma.estado_mandato === 'ACTIVO');
+        return {
+            id: m.id,
+            nombre: m.usuario?.nombre_completo || m.usuario?.email || 'Usuario',
+            email: m.usuario?.email || null,
+            rol: m.tipo_rol_usuario,
+            rolLabel: getRolCertificateLabel(m.tipo_rol_usuario),
+            mandatoTipo: mandatoActivo?.tipo_mandato || null,
+            mandatoLabel: mandatoActivo ? getMandatoCertificateLabel(mandatoActivo.tipo_mandato) : null,
+            fechaAltaMandato: mandatoActivo?.created_at || null
+        };
+    });
+
+    // 7. Generar contenido HTML
     const fechaGeneracion = new Date().toISOString();
     const contenidoHtml = generateCertificateHtml({
         contrato,
         eventos: eventosFormateados,
         comunicaciones: comunicacionesFormateadas,
         documentos: documentosFormateados,
+        intervinientes: intervinientesFormateados,
         fechaGeneracion
     });
 
@@ -216,9 +255,10 @@ function generateCertificateHtml(data: {
     eventos: EventoCompleto[];
     comunicaciones: ComunicacionResumen[];
     documentos: DocumentoResumen[];
+    intervinientes: IntervinienteResumen[];
     fechaGeneracion: string;
 }): string {
-    const { contrato, eventos, comunicaciones, documentos, fechaGeneracion } = data;
+    const { contrato, eventos, comunicaciones, documentos, intervinientes, fechaGeneracion } = data;
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleString('es-ES', {
@@ -397,6 +437,34 @@ function generateCertificateHtml(data: {
                     <div class="number">${documentos.length}</div>
                     <div class="label">Documentos</div>
                 </div>
+            </div>
+
+            <div class="section">
+                <h2>👥 Intervinientes y Régimen de Actuación</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                    <thead>
+                        <tr style="background: #f7fafc; text-align: left;">
+                            <th style="padding: 0.75rem; border-bottom: 2px solid #e2e8f0;">Nombre</th>
+                            <th style="padding: 0.75rem; border-bottom: 2px solid #e2e8f0;">Rol en Sistema</th>
+                            <th style="padding: 0.75rem; border-bottom: 2px solid #e2e8f0;">Régimen de Actuación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${intervinientes.map(i => `
+                            <tr>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+                                    <strong>${i.nombre}</strong>
+                                    ${i.email ? `<br><span style="font-size: 0.85rem; color: #718096;">${i.email}</span>` : ''}
+                                </td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">${i.rolLabel}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+                                    ${i.mandatoLabel ? `<span style="color: #2b6cb0;">${i.mandatoLabel}</span>` : '<span style="color: #a0aec0;">—</span>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ${intervinientes.length === 0 ? '<p style="color: #718096; margin-top: 1rem;">No hay intervinientes registrados en el expediente.</p>' : ''}
             </div>
 
             <div class="section">

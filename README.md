@@ -182,7 +182,7 @@ Cuando una parte no acude a la cita notarial:
 stateDiagram-v2
     [*] --> NoComparecenciaDetectada
     NoComparecenciaDetectada --> ActaGenerada: Generar acta
-    ActaGenerada --> VentanaAlegaciones: 72h para alegaciones
+    ActaGenerada --> VentanaAlegaciones: 48h para alegaciones
     VentanaAlegaciones --> AlegacionPresentada: Parte presenta alegación
     VentanaAlegaciones --> VentanaCerrada: Tiempo expirado
     AlegacionPresentada --> EvaluacionAlegacion

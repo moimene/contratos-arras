@@ -26,6 +26,7 @@ import profileRoutes from './routes/profile.js';
 import organizationRoutes from './routes/organization.js';
 import roleRoutes from './routes/role.js';
 import participantesRoutes from './routes/participantes.js';
+import healthRoutes from './routes/health.js';
 
 const app = express();
 
@@ -74,7 +75,10 @@ app.get('/', (_req: Request, res: Response) => {
     });
 });
 
-// Health check
+// Health check routes (includes /health/qtsp and /health/db)
+app.use('/health', healthRoutes);
+
+// Legacy health check (keep for backwards compatibility)
 app.get('/api/health', (_req: Request, res: Response) => {
     res.json({
         status: 'ok',
