@@ -28,6 +28,47 @@ export type RolParte =
     | 'INTERMEDIARIO'
     | 'OTRO';
 
+// =====================================================
+// SISTEMA DE ROLES, MANDATOS E INVITACIONES
+// =====================================================
+
+/** Rol de sistema del usuario (capacidades globales) */
+export type TipoRolUsuario =
+    | 'ADMIN'
+    | 'COMPRADOR'
+    | 'VENDEDOR'
+    | 'TERCERO'
+    | 'NOTARIO'
+    | 'OBSERVADOR';
+
+/** Tipo de mandato: en nombre de quién actúa */
+export type TipoMandato =
+    | 'PARTE_COMPRADORA'
+    | 'PARTE_VENDEDORA'
+    | 'AMBAS_PARTES'
+    | 'NOTARIA'
+    | 'OBSERVADOR_TECNICO';
+
+/** Estado del acceso al expediente */
+export type EstadoAcceso =
+    | 'PENDIENTE_INVITACION'
+    | 'ACTIVO'
+    | 'REVOCADO';
+
+/** Estado del mandato */
+export type EstadoMandato =
+    | 'ACTIVO'
+    | 'REVOCADO';
+
+/** Estado de la invitación */
+export type EstadoInvitacion =
+    | 'CREADA'
+    | 'ENVIADA'
+    | 'VISTA'
+    | 'ACEPTADA'
+    | 'EXPIRADA'
+    | 'REVOCADA';
+
 export type MetodoPago =
     | 'TRANSFERENCIA'
     | 'DEPOSITO_NOTARIA';
@@ -428,3 +469,85 @@ export interface ContratoFullLegacy extends ContratoArras {
     eventos?: Evento[];
     pagos?: Pago[];
 }
+
+// =====================================================
+// ENTIDADES: MIEMBROS, MANDATOS E INVITACIONES
+// =====================================================
+
+/** Miembro de expediente: vínculo usuario ↔ expediente */
+export interface MiembroExpediente {
+    id: string;
+    usuario_id: string | null;
+    contrato_id: string;
+    tipo_rol_usuario: TipoRolUsuario;
+    estado_acceso: EstadoAcceso;
+    creado_por_usuario_id?: string;
+    created_at: string;
+    updated_at: string;
+    // Campos enriquecidos (de joins)
+    usuario_email?: string;
+    usuario_nombre?: string;
+    mandatos?: MandatoExpediente[];
+}
+
+/** Mandato: en nombre de quién actúa el miembro */
+export interface MandatoExpediente {
+    id: string;
+    miembro_expediente_id: string;
+    tipo_mandato: TipoMandato;
+    puede_subir_documentos: boolean;
+    puede_invitar: boolean;
+    puede_validar_documentos: boolean;
+    puede_firmar: boolean;
+    puede_enviar_comunicaciones: boolean;
+    estado_mandato: EstadoMandato;
+    creado_por_usuario_id?: string;
+    revocado_por_usuario_id?: string;
+    fecha_revocacion?: string;
+    motivo_revocacion?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+/** Invitación para unirse a un expediente */
+export interface InvitacionExpediente {
+    id: string;
+    contrato_id: string;
+    email_destino?: string;
+    rol_invitado: TipoRolUsuario;
+    tipo_mandato?: TipoMandato;
+    permisos_mandato?: Record<string, boolean>;
+    token: string;
+    fecha_caducidad?: string;
+    estado: EstadoInvitacion;
+    mensaje_opcional?: string;
+    creado_por_usuario_id?: string;
+    aceptado_por_usuario_id?: string;
+    fecha_aceptacion?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+/** Permisos efectivos calculados (rol + mandato + estado) */
+export interface PermisosEfectivos {
+    canView: boolean;
+    canCreateContract: boolean;
+    canInviteUsers: boolean;
+    canUploadDocs: boolean;
+    canValidateDocs: boolean;
+    canRejectDocs: boolean;
+    canDeleteDocs: boolean;
+    canSendCommunications: boolean;
+    canGenerateCertificate: boolean;
+    canCreateNotaryAppointment: boolean;
+    canSign: boolean;
+}
+
+/** Labels para mostrar mandatos en UI */
+export const MANDATO_LABELS: Record<TipoMandato, string> = {
+    PARTE_COMPRADORA: 'Asesor de la parte compradora',
+    PARTE_VENDEDORA: 'Asesor de la parte vendedora',
+    AMBAS_PARTES: 'Agencia (ambas partes)',
+    NOTARIA: 'Asistente notarial',
+    OBSERVADOR_TECNICO: 'Observador técnico'
+};
