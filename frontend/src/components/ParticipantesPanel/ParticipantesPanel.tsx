@@ -90,43 +90,55 @@ export default function ParticipantesPanel({ contratoId, userId, rolActual }: Pa
     const [error, setError] = useState<string | null>(null);
     const [showInviteModal, setShowInviteModal] = useState(false);
 
-    const fetchMiembros = useCallback(async () => {
+    const fetchMiembros = useCallback(async (signal?: AbortSignal) => {
         try {
-            const response = await fetch(`${API_URL}/api/contratos/${contratoId}/miembros`);
+            const response = await fetch(`${API_URL}/api/contratos/${contratoId}/miembros`, { signal });
             const data = await response.json();
+            if (signal?.aborted) return;
             if (data.success) {
                 setMiembros(data.data);
             }
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error fetching miembros:', err);
         }
     }, [contratoId]);
 
-    const fetchInvitaciones = useCallback(async () => {
+    const fetchInvitaciones = useCallback(async (signal?: AbortSignal) => {
         try {
-            const response = await fetch(`${API_URL}/api/contratos/${contratoId}/invitaciones`);
+            const response = await fetch(`${API_URL}/api/contratos/${contratoId}/invitaciones`, { signal });
             const data = await response.json();
+            if (signal?.aborted) return;
             if (data.success) {
                 setInvitaciones(data.data);
             }
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error fetching invitaciones:', err);
         }
     }, [contratoId]);
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchData = async () => {
             setLoading(true);
             setError(null);
             try {
-                await Promise.all([fetchMiembros(), fetchInvitaciones()]);
+                await Promise.all([
+                    fetchMiembros(controller.signal),
+                    fetchInvitaciones(controller.signal)
+                ]);
             } catch (err: any) {
+                if (err.name === 'AbortError') return;
                 setError(err.message);
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
         };
         fetchData();
+        return () => controller.abort();
     }, [fetchMiembros, fetchInvitaciones]);
 
     const handleRevocarAcceso = async (miembroId: string) => {

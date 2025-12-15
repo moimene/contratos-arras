@@ -66,7 +66,7 @@ export default function ParticipantsReadinessPanel({
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteRol, setInviteRol] = useState<'COMPRADOR' | 'VENDEDOR'>('COMPRADOR');
 
-    const fetchStatus = useCallback(async () => {
+    const fetchStatus = useCallback(async (signal?: AbortSignal) => {
         if (!contratoId) {
             setLoading(false);
             return;
@@ -75,12 +75,16 @@ export default function ParticipantsReadinessPanel({
         try {
             // Fetch both miembros and invitaciones in parallel
             const [miembrosRes, invitacionesRes] = await Promise.all([
-                fetch(`${API_URL}/api/contratos/${contratoId}/miembros`),
-                fetch(`${API_URL}/api/contratos/${contratoId}/invitaciones`)
+                fetch(`${API_URL}/api/contratos/${contratoId}/miembros`, { signal }),
+                fetch(`${API_URL}/api/contratos/${contratoId}/invitaciones`, { signal })
             ]);
+
+            if (signal?.aborted) return;
 
             const miembrosData = await miembrosRes.json();
             const invitacionesData = await invitacionesRes.json();
+
+            if (signal?.aborted) return;
 
             const miembros = miembrosData.success ? miembrosData.data : [];
             const invitaciones = invitacionesData.success ? invitacionesData.data : [];
@@ -126,15 +130,20 @@ export default function ParticipantsReadinessPanel({
             onStatusChange?.(allReady);
 
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error fetching participant status:', err);
             setError('Error al cargar estado de participantes');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
     }, [contratoId, onStatusChange]);
 
     useEffect(() => {
-        fetchStatus();
+        const controller = new AbortController();
+        fetchStatus(controller.signal);
+        return () => controller.abort();
     }, [fetchStatus]);
 
     const handleInvite = (rol: 'COMPRADOR' | 'VENDEDOR') => {
