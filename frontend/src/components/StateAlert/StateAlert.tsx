@@ -4,7 +4,7 @@
  * Muestra alertas cuando faltan documentos para avanzar de estado.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './StateAlert.css';
 
 interface PendingDocument {
@@ -41,28 +41,36 @@ export default function StateAlert({ contratoId, currentState, onDocumentClick }
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(false);
 
-    useEffect(() => {
-        fetchEligibility();
-    }, [contratoId, currentState]);
-
-    const fetchEligibility = async () => {
+    const fetchEligibility = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
             const response = await fetch(
-                `${apiUrl}/api/contratos/${contratoId}/transition/eligibility?currentState=${currentState}`
+                `${apiUrl}/api/contratos/${contratoId}/transition/eligibility?currentState=${currentState}`,
+                { signal }
             );
             const result = await response.json();
+
+            if (signal?.aborted) return;
 
             if (result.success) {
                 setEligibility(result.data);
             }
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error checking eligibility:', err);
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [contratoId, currentState]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchEligibility(controller.signal);
+        return () => controller.abort();
+    }, [fetchEligibility]);
 
     if (loading || !eligibility) return null;
 

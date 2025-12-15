@@ -5,7 +5,7 @@
  * Incluye marcado de mensajes probatoriamente relevantes.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './ChatPanel.css';
 
 interface Mensaje {
@@ -30,12 +30,41 @@ export default function ChatPanel({ contratoId, usuarioNombre = 'Usuario' }: Cha
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        fetchMensajes();
-        // Polling cada 10 segundos para nuevos mensajes
-        const interval = setInterval(fetchMensajes, 10000);
-        return () => clearInterval(interval);
+    const fetchMensajes = useCallback(async (signal?: AbortSignal) => {
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/mensajes`, { signal });
+            const result = await response.json();
+
+            if (signal?.aborted) return;
+
+            if (result.success) {
+                setMensajes(result.data);
+            }
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
+            console.error('Error cargando mensajes:', err);
+        } finally {
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
+        }
     }, [contratoId]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchMensajes(controller.signal);
+
+        // Polling cada 10 segundos para nuevos mensajes
+        const interval = setInterval(() => {
+            fetchMensajes(controller.signal);
+        }, 10000);
+
+        return () => {
+            controller.abort();
+            clearInterval(interval);
+        };
+    }, [fetchMensajes]);
 
     useEffect(() => {
         scrollToBottom();
@@ -43,22 +72,6 @@ export default function ChatPanel({ contratoId, usuarioNombre = 'Usuario' }: Cha
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    const fetchMensajes = async () => {
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/mensajes`);
-            const result = await response.json();
-
-            if (result.success) {
-                setMensajes(result.data);
-            }
-        } catch (err) {
-            console.error('Error cargando mensajes:', err);
-        } finally {
-            setLoading(false);
-        }
     };
 
     const handleSend = async () => {
