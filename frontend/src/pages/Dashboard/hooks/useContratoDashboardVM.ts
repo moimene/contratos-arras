@@ -9,7 +9,7 @@
  * - Contadores de documentos
  */
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ContratoData } from '../../../hooks/useContrato';
 import type { TipoRolUsuario } from '../../../hooks/useTipoRolUsuario';
@@ -91,15 +91,26 @@ export function useContratoDashboardVM(
 ): ContratoDashboardVM {
     const navigate = useNavigate();
 
-    // Usar el motor de tareas para generar acciones según rol
-    const contratoParaEngine = contrato ? [{
-        id: contrato.id,
-        numero_expediente: contrato.numero_expediente,
-        estado: contrato.estado as any,
-        fecha_limite_firma_escritura: contrato.fecha_limite_firma_escritura,
-        fecha_limite_pago_arras: (contrato as any).fecha_limite_pago_arras,
-        arras_acreditadas_at: (contrato as any).arras_acreditadas_at,
-    }] : [];
+    // Stable reference for onGoTo - doesn't depend on any state
+    const onGoTo = useCallback((seccion: string) => {
+        // Dispatch custom event that DashboardSection listens to
+        window.dispatchEvent(new CustomEvent('dashboard-goto-section', {
+            detail: { sectionId: seccion }
+        }));
+    }, []);
+
+    // Memoize contratoParaEngine to prevent new array on every render
+    const contratoParaEngine = useMemo(() => {
+        if (!contrato) return [];
+        return [{
+            id: contrato.id,
+            numero_expediente: contrato.numero_expediente,
+            estado: contrato.estado as any,
+            fecha_limite_firma_escritura: contrato.fecha_limite_firma_escritura,
+            fecha_limite_pago_arras: (contrato as any).fecha_limite_pago_arras,
+            arras_acreditadas_at: (contrato as any).arras_acreditadas_at,
+        }];
+    }, [contrato?.id, contrato?.estado, contrato?.fecha_limite_firma_escritura]);
 
     const {
         tareas,
@@ -110,7 +121,8 @@ export function useContratoDashboardVM(
         rol: rolActual as TaskRol
     });
 
-    // Memoizar toda la derivación de datos
+    // Memoizar toda la derivación de datos - removed navigate from deps
+    // since mapTareasToAcciones receives it as argument
     return useMemo(() => {
         // Valores por defecto si no hay contrato
         if (!contrato) {
@@ -140,14 +152,6 @@ export function useContratoDashboardVM(
         // Configuración de secciones
         const secciones = deriveSecciones(contrato, contadores);
 
-        // Navegación a sección - dispara evento personalizado que DashboardSection escucha
-        const onGoTo = (seccion: string) => {
-            // Dispatch custom event that DashboardSection listens to
-            window.dispatchEvent(new CustomEvent('dashboard-goto-section', {
-                detail: { sectionId: seccion }
-            }));
-        };
-
         return {
             fase,
             accionesSugeridas,
@@ -157,7 +161,7 @@ export function useContratoDashboardVM(
             onGoTo,
             secciones,
         };
-    }, [contrato, navigate, tareas, hayUrgentes]);
+    }, [contrato, tareas, hayUrgentes, onGoTo, navigate]);
 }
 
 // ============================================================================
