@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTipoRolUsuario } from '../../hooks/useTipoRolUsuario';
 import { useAuth } from '../../features/auth/AuthContext';
 
@@ -25,23 +25,43 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
     const { role: rolActual, permissions, loading: roleLoading } = useTipoRolUsuario();
     const { user } = useAuth();
 
-    useEffect(() => {
-        cargarDatosContrato();
+    const cargarEstadoFirmas = useCallback(async (signal?: AbortSignal) => {
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const response = await fetch(`${apiUrl}/api/contracts/${contratoId}/firmas`, {
+                signal
+            });
+            const data = await response.json();
+
+            if (signal?.aborted) return;
+
+            console.log('📊 Estado de firmas:', data);
+
+            if (data.success) {
+                setEstadoFirmas(data.data);
+            } else {
+                setError(data.error || 'Error al cargar firmas');
+            }
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
+            console.error('❌ Error cargando firmas:', err);
+            setError('Error al conectar con el servidor');
+        }
     }, [contratoId]);
 
-    useEffect(() => {
-        if (estadoFirmas?.todasFirmasCompletas && onTodasFirmasCompletas) {
-            onTodasFirmasCompletas();
-        }
-    }, [estadoFirmas?.todasFirmasCompletas]);
-
-    const cargarDatosContrato = async () => {
+    const cargarDatosContrato = useCallback(async (signal?: AbortSignal) => {
         try {
+            setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
             console.log('🔍 Cargando contrato:', contratoId);
-            const contratoRes = await fetch(`${apiUrl}/api/contracts/${contratoId}`);
+            const contratoRes = await fetch(`${apiUrl}/api/contracts/${contratoId}`, {
+                signal
+            });
             const contratoData = await contratoRes.json();
+
+            if (signal?.aborted) return;
 
             console.log('📦 Respuesta API completa:', contratoData);
 
@@ -100,34 +120,30 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
             }
 
             // Cargar estado de firmas
-            await cargarEstadoFirmas();
+            await cargarEstadoFirmas(signal);
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('❌ Error cargando datos:', err);
             setError(`Error: ${err.message}`);
             setDebugInfo(`Error: ${err.toString()}`);
         } finally {
-            setLoading(false);
-        }
-    };
-
-    const cargarEstadoFirmas = async () => {
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contracts/${contratoId}/firmas`);
-            const data = await response.json();
-
-            console.log('📊 Estado de firmas:', data);
-
-            if (data.success) {
-                setEstadoFirmas(data.data);
-            } else {
-                setError(data.error || 'Error al cargar firmas');
+            if (!signal?.aborted) {
+                setLoading(false);
             }
-        } catch (err: any) {
-            console.error('❌ Error cargando firmas:', err);
-            setError('Error al conectar con el servidor');
         }
-    };
+    }, [cargarEstadoFirmas, contratoId]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        cargarDatosContrato(controller.signal);
+        return () => controller.abort();
+    }, [cargarDatosContrato]);
+
+    useEffect(() => {
+        if (estadoFirmas?.todasFirmasCompletas && onTodasFirmasCompletas) {
+            onTodasFirmasCompletas();
+        }
+    }, [estadoFirmas?.todasFirmasCompletas, onTodasFirmasCompletas]);
 
     const handleFirmar = async (parteId: string) => {
         setFirmando(parteId);

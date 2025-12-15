@@ -9,7 +9,7 @@
  * - Contadores de documentos
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ContratoData } from '../../../hooks/useContrato';
 import type { TipoRolUsuario } from '../../../hooks/useTipoRolUsuario';
@@ -91,6 +91,10 @@ export function useContratoDashboardVM(
 ): ContratoDashboardVM {
     const navigate = useNavigate();
 
+    // Use ref for navigate to prevent re-renders when navigate reference changes
+    const navigateRef = useRef(navigate);
+    navigateRef.current = navigate;
+
     // Stable reference for onGoTo - doesn't depend on any state
     const onGoTo = useCallback((seccion: string) => {
         // Dispatch custom event that DashboardSection listens to
@@ -147,7 +151,7 @@ export function useContratoDashboardVM(
         };
 
         // Derivar acciones desde useTaskEngine
-        const accionesSugeridas = mapTareasToAcciones(tareas, navigate);
+        const accionesSugeridas = mapTareasToAcciones(tareas, navigateRef.current);
 
         // Configuración de secciones
         const secciones = deriveSecciones(contrato, contadores);
@@ -161,7 +165,7 @@ export function useContratoDashboardVM(
             onGoTo,
             secciones,
         };
-    }, [contrato, tareas, hayUrgentes, onGoTo, navigate]);
+    }, [contrato?.id, contrato?.estado, tareas, hayUrgentes, onGoTo]);
 }
 
 // ============================================================================
