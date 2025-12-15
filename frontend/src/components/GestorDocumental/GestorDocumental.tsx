@@ -5,7 +5,7 @@
  * Muestra documentos del expediente organizados por grupo con filtros y acciones.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './GestorDocumental.css';
 import UploadModal from '../InventarioPanel/UploadModal';
 
@@ -87,16 +87,17 @@ export default function GestorDocumental({ contratoId, rolActual }: GestorDocume
     // Modal de subida
     const [documentoParaSubir, setDocumentoParaSubir] = useState<Documento | null>(null);
 
-    useEffect(() => {
-        fetchDocumentos();
-    }, [contratoId]);
-
-    const fetchDocumentos = async () => {
+    const fetchDocumentos = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/documentos`);
+            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/documentos`, {
+                signal
+            });
             const result = await response.json();
+
+            if (signal?.aborted) return;
 
             if (result.success) {
                 setDocumentos(result.data);
@@ -105,12 +106,21 @@ export default function GestorDocumental({ contratoId, rolActual }: GestorDocume
                 throw new Error(result.error);
             }
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error cargando documentos:', err);
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [contratoId]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchDocumentos(controller.signal);
+        return () => controller.abort();
+    }, [fetchDocumentos]);
 
     const handleValidar = async (inventarioId: string) => {
         try {
@@ -227,7 +237,7 @@ export default function GestorDocumental({ contratoId, rolActual }: GestorDocume
         return (
             <div className="gestor-documental error">
                 <p>⚠️ Error: {error}</p>
-                <button onClick={fetchDocumentos}>Reintentar</button>
+                <button onClick={() => fetchDocumentos()}>Reintentar</button>
             </div>
         );
     }
