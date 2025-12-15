@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useContract } from '../../context/ContractContext';
+import ParticipantsReadinessPanel from './ParticipantsReadinessPanel';
 
 interface Acceptance {
     parteId: string;
@@ -10,12 +11,13 @@ interface Acceptance {
 }
 
 export const Step4Resumen: React.FC = () => {
-    const { inmueble, contrato, compradores, vendedores, setCurrentStep } = useContract();
+    const { inmueble, contrato, compradores, vendedores, setCurrentStep, contratoId } = useContract();
 
     const [acceptances, setAcceptances] = useState<Record<string, Acceptance>>({});
     const [checkedParties, setCheckedParties] = useState<Record<string, boolean>>({});
     const [contractVersion, setContractVersion] = useState<string>('');
     const [userIP, setUserIP] = useState<string>('');
+    const [participantsReady, setParticipantsReady] = useState<boolean>(false);
 
     // Generate version hash from essential terms
     useEffect(() => {
@@ -458,6 +460,12 @@ export const Step4Resumen: React.FC = () => {
                         <p className="narrative-text">{generateNarrativeSummary()}</p>
                     </div>
 
+                    {/* PARTICIPANTS READINESS - Verificación de partes críticas */}
+                    <ParticipantsReadinessPanel
+                        contratoId={contratoId}
+                        onStatusChange={setParticipantsReady}
+                    />
+
                     {/* ACCEPTANCE PANEL */}
                     <div className="acceptance-panel">
                         <h3>✅ Aceptación de Términos Esenciales</h3>
@@ -547,7 +555,8 @@ export const Step4Resumen: React.FC = () => {
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={!allPartiesAccepted()}
+                            disabled={!allPartiesAccepted() || !participantsReady}
+                            title={!participantsReady ? 'Invita a ambas partes (comprador y vendedor) antes de continuar' : ''}
                         >
                             Crear Borrador Contrato →
                         </button>

@@ -43,6 +43,23 @@ export default function DashboardSection({
         }
     }, [id]);
 
+    // Escuchar evento de navegación desde DashboardOverview
+    useEffect(() => {
+        const handleGotoSection = (event: CustomEvent<{ sectionId: string }>) => {
+            if (event.detail.sectionId === id) {
+                setIsOpen(true);
+                setTimeout(() => {
+                    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        };
+
+        window.addEventListener('dashboard-goto-section', handleGotoSection as EventListener);
+        return () => {
+            window.removeEventListener('dashboard-goto-section', handleGotoSection as EventListener);
+        };
+    }, [id]);
+
     const handleToggle = () => {
         setIsOpen(!isOpen);
     };

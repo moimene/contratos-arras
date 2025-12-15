@@ -62,7 +62,8 @@ export default function DashboardOverview({
                     {/* Documentos */}
                     <div
                         className="resumen-card documentos"
-                        onClick={() => onGoTo('documentos')}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onGoTo('documentos'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGoTo('documentos'); } }}
                         role="button"
                         tabIndex={0}
                     >
@@ -103,7 +104,8 @@ export default function DashboardOverview({
                     {/* Timeline */}
                     <div
                         className="resumen-card timeline"
-                        onClick={() => onGoTo('timeline')}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onGoTo('timeline'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGoTo('timeline'); } }}
                         role="button"
                         tabIndex={0}
                     >
@@ -123,7 +125,8 @@ export default function DashboardOverview({
                     {/* Comunicaciones */}
                     <div
                         className="resumen-card comunicaciones"
-                        onClick={() => onGoTo('comunicaciones')}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onGoTo('comunicaciones'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGoTo('comunicaciones'); } }}
                         role="button"
                         tabIndex={0}
                     >
@@ -137,7 +140,8 @@ export default function DashboardOverview({
                     {/* Certificado */}
                     <div
                         className="resumen-card certificado"
-                        onClick={() => onGoTo('certificado')}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onGoTo('certificado'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGoTo('certificado'); } }}
                         role="button"
                         tabIndex={0}
                     >

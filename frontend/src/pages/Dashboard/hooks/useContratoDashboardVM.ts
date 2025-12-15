@@ -140,12 +140,12 @@ export function useContratoDashboardVM(
         // Configuración de secciones
         const secciones = deriveSecciones(contrato, contadores);
 
-        // Navegación a sección
+        // Navegación a sección - dispara evento personalizado que DashboardSection escucha
         const onGoTo = (seccion: string) => {
-            const element = document.getElementById(`seccion-${seccion}`);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            // Dispatch custom event that DashboardSection listens to
+            window.dispatchEvent(new CustomEvent('dashboard-goto-section', {
+                detail: { sectionId: seccion }
+            }));
         };
 
         return {

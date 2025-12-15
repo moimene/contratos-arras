@@ -95,7 +95,11 @@ sequenceDiagram
 > La **Fase 2** comprende la firma electrónica y la ejecución del contrato desde el dashboard (documentación, notaría y pagos),
 > y la **Fase 3** la terminación normal o litigiosa del expediente.
 
-### 2. Flujo de Firma
+### 2. Flujo de Firma Electrónica
+
+El sistema soporta dos modalidades de firma:
+
+#### 2.1 Firma en Plataforma (In-Platform)
 
 ```mermaid
 sequenceDiagram
@@ -105,18 +109,80 @@ sequenceDiagram
     participant QTSP as Sello Tiempo
 
     C->>B: POST /api/contratos/:id/firmas (firmar)
+    B->>B: Validar rol del usuario
     B->>QTSP: Solicitar sello cualificado
     QTSP-->>B: Token RFC3161
     B->>DB: Guardar firma + sello
     B-->>C: Confirmación firma comprador
 
     V->>B: POST /api/contratos/:id/firmas (firmar)
+    B->>B: Validar rol del usuario
     B->>QTSP: Solicitar sello cualificado
     B->>B: Detectar que ambos firmaron
     B->>B: Transición a FIRMADO
     B->>B: Generar PDF firmado con sello
     B-->>V: Contrato oficialmente firmado
 ```
+
+**Controles de seguridad (Firma por Rol):**
+- ✅ Usuario solo puede firmar con su rol asignado (COMPRADOR/VENDEDOR)  
+- ✅ Mandatarios pueden firmar si tienen permiso `puede_firmar`
+- ✅ Backend valida `x-user-id` contra el rol solicitado
+- ✅ Frontend solo muestra botón "Firmar" para el rol del usuario actual
+
+#### 2.2 Flujo Documento Externo + Ratificación
+
+Para contratos firmados fuera de la plataforma (físicamente o en otra herramienta):
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant B as Backend
+    participant QTSP as Sello Tiempo
+    participant C as Comprador
+    participant V as Vendedor
+
+    U->>B: POST /api/upload (PDF firmado externamente)
+    B->>B: Calcular SHA-256
+    B->>DB: Guardar archivo con origen=EXTERNO
+
+    C->>B: POST /api/contratos/:id/ratificaciones
+    B->>B: Validar rol COMPRADOR
+    B->>B: Verificar hash del documento
+    B->>QTSP: Sellar ratificación
+    QTSP-->>B: Token RFC3161
+    B->>DB: Registrar ratificación COMPRADOR
+
+    V->>B: POST /api/contratos/:id/ratificaciones
+    B->>B: Validar rol VENDEDOR
+    B->>B: Verificar hash del documento
+    B->>QTSP: Sellar ratificación
+    B->>B: Detectar 2/2 ratificaciones
+    B->>B: Transición a FIRMADO
+    B-->>V: Contrato ratificado y finalizado
+```
+
+**Texto legal de ratificación (`RATIFICACION_CONTRATO_FIRMADO_EXTERNO v1.0.0`):**
+
+> Declaro que he revisado el documento PDF que se muestra como "Contrato de arras firmado" y reconozco que corresponde al contrato que he firmado fuera de esta plataforma.
+> 
+> Confirmo que:
+> 1. **Reconozco como propio** el contenido íntegro de dicho documento
+> 2. **Ratifico su validez y eficacia** a todos los efectos legales
+> 3. **Acepto que esta ratificación electrónica quede registrada** con sellado de tiempo cualificado
+> 4. Entiendo que esta actuación **refuerza probatoriamente** la firma original
+
+#### 2.3 Panel de Preparación de Participantes
+
+Antes de crear el borrador de contrato, el sistema verifica que las partes críticas estén invitadas:
+
+| Estado | Icono | Descripción |
+|--------|-------|-------------|
+| `MIEMBRO_ACTIVO` | ✅ | Usuario ha aceptado la invitación |
+| `INVITACION_PENDIENTE` | ⏳ | Invitación enviada, esperando aceptación |
+| `NO_INVITADO` | ❌ | No se ha enviado invitación |
+
+**Regla de negocio**: El botón "Crear Borrador Contrato" está bloqueado si COMPRADOR o VENDEDOR están en estado `NO_INVITADO`.
 
 **Estados de firma:**
 - `PENDIENTE`: Esperando firma
@@ -127,6 +193,8 @@ sequenceDiagram
 - ✅ Como parte, recibo notificación cuando debo firmar
 - ✅ Como firmante, mi firma queda sellada con tiempo cualificado
 - ✅ Como parte, puedo descargar el contrato firmado con prueba criptográfica
+- ✅ Como usuario externo, puedo subir un contrato firmado fuera y ratificarlo
+- ✅ Como usuario, solo veo la opción de firmar para mi rol asignado
 
 ### 3. Flujo de Gestión Documental
 
@@ -546,6 +614,9 @@ Cada acción relevante genera un evento inmutable:
 | `ACTA_NO_COMPARECENCIA` | No comparecencia |
 | `ESCRITURA_OTORGADA` | Escritura firmada |
 | `CONTRATO_CERRADO` | Cierre del expediente |
+| `CONTRATO_FIRMADO_EXTERNO_SUBIDO` | PDF firmado externamente subido |
+| `CONTRATO_FIRMADO_EXTERNO_RATIFICADO` | Ratificación de parte (COMPRADOR/VENDEDOR) |
+| `CONTRATO_FIRMADO_FINALIZADO` | Todas las ratificaciones completadas |
 
 ### Estructura del Evento
 
@@ -592,9 +663,17 @@ Cada evento crítico recibe un sello RFC3161:
 | `POST` | `/api/contratos` | Crear nuevo contrato |
 | `GET` | `/api/contratos/:id` | Obtener detalle |
 | `PATCH` | `/api/contratos/:id` | Actualizar contrato |
-| `POST` | `/api/contratos/:id/firmas` | Registrar firma |
 | `GET` | `/api/contratos/:id/eventos` | Timeline de eventos |
 | `GET` | `/api/contratos/:id/certificado` | Generar certificado |
+
+### Firma y Ratificación
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/api/contracts/:id/firmas` | Estado de firmas del contrato |
+| `POST` | `/api/contracts/:id/firmar` | Registrar firma (in-platform) |
+| `GET` | `/api/contratos/:id/ratificaciones` | Estado de ratificaciones |
+| `POST` | `/api/contratos/:id/ratificaciones` | Ratificar documento externo |
 
 ### Participantes
 
@@ -704,6 +783,7 @@ chrono-flare/
 - ✅ Otorgar mandatos con sellado QTSP
 - ✅ Revocar mandatos con sellado QTSP
 - ✅ Selector "Actuando como..." para múltiples mandatos
+- ✅ Panel de preparación de participantes antes de crear borrador
 
 ### Comunicaciones
 - ✅ Enviar mensajes certificados entre partes
@@ -721,6 +801,12 @@ chrono-flare/
 - ✅ Certificado de eventos con valor probatorio
 - ✅ Cada evento sellado con QTSP
 
+### Firma Externa y Ratificación
+- ✅ Subir contrato firmado externamente (PDF)
+- ✅ Ratificar documento con texto legal específico
+- ✅ Verificación de hash SHA-256 del documento
+- ✅ Transición automática a FIRMADO cuando 2/2 ratificaciones
+
 ---
 
 ## Licencia y Cumplimiento
@@ -732,5 +818,5 @@ El sistema cumple con:
 
 ---
 
-*Documentación generada: 2025-12-14*
-*Versión del sistema: 1.0.0*
+*Documentación actualizada: 2025-12-15*
+*Versión del sistema: 1.1.0*

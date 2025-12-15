@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTipoRolUsuario } from '../../hooks/useTipoRolUsuario';
+import { useAuth } from '../../features/auth/AuthContext';
 
 interface FirmaElectronicaProps {
     contratoId: string;
@@ -18,6 +20,10 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
     const [aceptoTerminos, setAceptoTerminos] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
     const [debugInfo, setDebugInfo] = useState<string>('');
+
+    // Obtener rol del usuario actual para mostrar UI condicional
+    const { role: rolActual, permissions, loading: roleLoading } = useTipoRolUsuario();
+    const { user } = useAuth();
 
     useEffect(() => {
         cargarDatosContrato();
@@ -133,6 +139,7 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(user?.id ? { 'x-user-id': user.id } : {}),
                 },
                 body: JSON.stringify({
                     parteId: parteId,
@@ -164,6 +171,11 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
         const yaFirmado = firmaDetalle?.firmado || false;
         const estaFirmandoEsta = firmando === parteId;
 
+        // Determinar si el usuario actual puede firmar por esta parte
+        // El usuario puede firmar si su rol coincide con el tipo_parte (COMPRADOR/VENDEDOR)
+        const esMiRol = parte.tipo_parte === rolActual;
+        const puedeActuar = esMiRol || permissions.canSign;
+
         return (
             <div key={parteId} className={`firma-parte-card ${yaFirmado ? 'firmado' : 'pendiente'}`}>
                 <div className="firma-parte-header">
@@ -190,7 +202,8 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
                     </div>
                 </div>
 
-                {!yaFirmado && (
+                {/* Mostrar acciones de firma solo si el usuario puede actuar */}
+                {!yaFirmado && puedeActuar && (
                     <div className="firma-parte-actions">
                         <label className="firma-checkbox-label">
                             <input
@@ -224,6 +237,23 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
                                 </>
                             )}
                         </button>
+                    </div>
+                )}
+
+                {/* Mensaje para usuarios que no pueden firmar por esta parte */}
+                {!yaFirmado && !puedeActuar && (
+                    <div className="firma-esperando" style={{
+                        padding: '0.75rem 1rem',
+                        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                        borderRadius: '8px',
+                        fontSize: '0.9rem',
+                        color: '#92400e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}>
+                        <span>⏳</span>
+                        <span>Esperando firma de {parte.tipo_parte === 'COMPRADOR' ? 'la parte compradora' : 'la parte vendedora'}</span>
                     </div>
                 )}
 

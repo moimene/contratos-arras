@@ -44,7 +44,7 @@ router.get('/contratos/:contratoId/miembros', async (req: Request, res: Response
             .from('miembros_expediente')
             .select(`
                 *,
-                usuario:perfiles(id, email, nombre_completo)
+                usuario:perfiles!usuario_id(id, email, nombre_completo)
             `)
             .eq('contrato_id', contratoId)
             .order('created_at', { ascending: true });

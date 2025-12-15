@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { useContract } from '../../context/ContractContext';
 import { FirmaElectronica } from '../firma/FirmaElectronica';
+import { ExternalUploadPanel } from '../firma/ExternalUploadPanel';
+import { RatificationPanel } from '../firma/RatificationPanel';
+
+type SigningMode = 'IN_PLATFORM' | 'EXTERNAL';
 
 export const Step6Firma: React.FC = () => {
     const { setCurrentStep, contratoId } = useContract();
     const [mostrarRedirect, setMostrarRedirect] = useState(false);
     const [countdown, setCountdown] = useState(3);
+
+    // External upload state
+    const [signingMode, setSigningMode] = useState<SigningMode>('IN_PLATFORM');
+    const [externalDocId, setExternalDocId] = useState<string | null>(null);
+    const [externalDocHash, setExternalDocHash] = useState<string | null>(null);
 
     if (!contratoId) {
         return (
@@ -32,6 +41,17 @@ export const Step6Firma: React.FC = () => {
         }, 1000);
     };
 
+    const handleExternalUploadComplete = (documentId: string, sha256: string) => {
+        console.log('📄 External document uploaded:', { documentId, sha256 });
+        setExternalDocId(documentId);
+        setExternalDocHash(sha256);
+    };
+
+    const handleAllRatified = () => {
+        console.log('✅ All parties ratified');
+        handleTodasFirmasCompletas();
+    };
+
     return (
         <div className="step-container">
             <div className="step-header">
@@ -42,14 +62,85 @@ export const Step6Firma: React.FC = () => {
                 </div>
             </div>
 
-            {/* Componente de firma electrónica */}
-            <FirmaElectronica
-                contratoId={contratoId}
-                onFirmaCompletada={() => {
-                    console.log('Firma registrada exitosamente');
-                }}
-                onTodasFirmasCompletas={handleTodasFirmasCompletas}
-            />
+            {/* Signing Mode Toggle */}
+            <div className="signing-mode-toggle" style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+                padding: '0.25rem',
+                background: '#f1f5f9',
+                borderRadius: '10px',
+                width: 'fit-content'
+            }}>
+                <button
+                    type="button"
+                    onClick={() => setSigningMode('IN_PLATFORM')}
+                    style={{
+                        padding: '0.75rem 1.25rem',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        transition: 'all 0.2s',
+                        background: signingMode === 'IN_PLATFORM' ? 'white' : 'transparent',
+                        color: signingMode === 'IN_PLATFORM' ? '#6366f1' : '#64748b',
+                        boxShadow: signingMode === 'IN_PLATFORM' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                >
+                    ✍️ Firma en Plataforma
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setSigningMode('EXTERNAL')}
+                    style={{
+                        padding: '0.75rem 1.25rem',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        transition: 'all 0.2s',
+                        background: signingMode === 'EXTERNAL' ? 'white' : 'transparent',
+                        color: signingMode === 'EXTERNAL' ? '#6366f1' : '#64748b',
+                        boxShadow: signingMode === 'EXTERNAL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                >
+                    📤 Documento Externo
+                </button>
+            </div>
+
+            {/* IN-PLATFORM SIGNING */}
+            {signingMode === 'IN_PLATFORM' && (
+                <FirmaElectronica
+                    contratoId={contratoId}
+                    onFirmaCompletada={() => {
+                        console.log('Firma registrada exitosamente');
+                    }}
+                    onTodasFirmasCompletas={handleTodasFirmasCompletas}
+                />
+            )}
+
+            {/* EXTERNAL DOCUMENT FLOW */}
+            {signingMode === 'EXTERNAL' && (
+                <>
+                    {!externalDocId && (
+                        <ExternalUploadPanel
+                            contratoId={contratoId}
+                            onUploadComplete={handleExternalUploadComplete}
+                        />
+                    )}
+
+                    {externalDocId && externalDocHash && (
+                        <RatificationPanel
+                            contratoId={contratoId}
+                            documentoId={externalDocId}
+                            documentoSha256={externalDocHash}
+                            onAllRatified={handleAllRatified}
+                        />
+                    )}
+                </>
+            )}
 
             {/* Mensaje de redirect con countdown */}
             {mostrarRedirect && (

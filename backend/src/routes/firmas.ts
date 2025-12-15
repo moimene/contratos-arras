@@ -30,10 +30,24 @@ router.get('/:contratoId', async (req: Request, res: Response) => {
 /**
  * POST /api/firmas/:contratoId
  * Registra firma electrónica de un contrato
+ * 
+ * Validaciones:
+ * 1. Contrato debe estar en estado BORRADOR
+ * 2. La parte solicitada debe estar obligada a firmar
+ * 3. El usuario actual debe ser miembro con rol correspondiente o tener mandato con puede_firmar
  */
 router.post('/:contratoId', async (req: Request, res: Response) => {
     try {
         const { parteId } = req.body;
+        const currentUserId = req.headers['x-user-id'] as string;
+
+        // Verificar autenticación
+        if (!currentUserId) {
+            return res.status(401).json({
+                error: 'Usuario no autenticado. Se requiere header x-user-id.',
+            });
+        }
+
         const full = await getContratoFull(req.params.contratoId);
 
         // Verificar que el borrador fue generado
@@ -44,13 +58,57 @@ router.post('/:contratoId', async (req: Request, res: Response) => {
         }
 
         // Verificar que la parte está obligada a firmar
-        const obligado = full.partes.find(
+        const parteAFirmar = full.partes.find(
             (p: any) => p.parte_id === parteId && p.obligado_firmar
         );
 
-        if (!obligado) {
+        if (!parteAFirmar) {
             return res.status(400).json({
                 error: 'La parte no está marcada como obligada a firmar',
+            });
+        }
+
+        // ============================================
+        // VALIDACIÓN DE ROL: ENTREGA B
+        // ============================================
+        // Verificar que el usuario actual tiene permiso para firmar por esta parte
+
+        // 1. Buscar si el usuario es miembro del expediente
+        const { data: miembro, error: miembroError } = await supabase
+            .from('miembros_expediente')
+            .select('*, mandatos:mandatos_expediente(*)')
+            .eq('contrato_id', req.params.contratoId)
+            .eq('usuario_id', currentUserId)
+            .eq('estado_acceso', 'ACTIVO')
+            .maybeSingle();
+
+        if (miembroError) {
+            console.error('Error buscando miembro:', miembroError);
+            return res.status(500).json({
+                error: 'Error verificando permisos de firma',
+            });
+        }
+
+        if (!miembro) {
+            return res.status(403).json({
+                error: 'No eres miembro activo de este expediente',
+            });
+        }
+
+        // 2. Verificar si puede firmar por esta parte
+        const rolParte = parteAFirmar.rol_en_contrato || parteAFirmar.tipo_parte; // COMPRADOR o VENDEDOR
+
+        // El usuario puede firmar si:
+        // a) Su rol es el mismo que el de la parte (COMPRADOR firma como COMPRADOR)
+        // b) Tiene un mandato activo con puede_firmar para esa parte
+        const esMismoRol = miembro.tipo_rol_usuario === rolParte;
+        const tieneMandatoFirma = miembro.mandatos?.some(
+            (m: any) => m.puede_firmar && m.estado_mandato === 'ACTIVO'
+        );
+
+        if (!esMismoRol && !tieneMandatoFirma) {
+            return res.status(403).json({
+                error: `No tienes permisos para firmar como ${rolParte}. Solo puedes firmar por tu propio rol o con mandato autorizado.`,
             });
         }
 

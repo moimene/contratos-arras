@@ -62,7 +62,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
             });
         }
 
-        const { contrato_id, inventario_item_id, tipo, subido_por_rol, subido_por_usuario } = req.body;
+        const { contrato_id, inventario_item_id, tipo, subido_por_rol, subido_por_usuario, origen } = req.body;
 
         if (!contrato_id) {
             return res.status(400).json({
@@ -93,7 +93,8 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
             url_publica: storageResult.publicUrl,
             tipo_documento: tipo || 'OTRO',
             subido_por_rol: subido_por_rol || 'USUARIO',
-            subido_por_usuario: subido_por_usuario || null
+            subido_por_usuario: subido_por_usuario || null,
+            origen: origen || 'IN_PLATFORM'
         };
 
         const { data: archivo, error: archivoError } = await supabase
