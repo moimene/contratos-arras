@@ -5,7 +5,7 @@
  * Muestra comunicaciones internas y externas con filtros y acciones.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ImportarComunicacionExterna from './ImportarExterna';
 import FormularioReclamacion from './FormularioReclamacion';
 import FormularioSolicitudDoc from './FormularioSolicitudDoc';
@@ -86,16 +86,15 @@ export default function GestorComunicaciones({ contratoId, rolActual }: GestorCo
     const [showNuevaMenu, setShowNuevaMenu] = useState(false);
     const [comunicacionDetalle, setComunicacionDetalle] = useState<Comunicacion | null>(null);
 
-    useEffect(() => {
-        fetchComunicaciones();
-    }, [contratoId]);
-
-    const fetchComunicaciones = async () => {
+    const fetchComunicaciones = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/comunicaciones`);
+            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/comunicaciones`, { signal });
             const result = await response.json();
+
+            if (signal?.aborted) return;
 
             if (result.success) {
                 setComunicaciones(result.data);
@@ -103,12 +102,21 @@ export default function GestorComunicaciones({ contratoId, rolActual }: GestorCo
                 throw new Error(result.error);
             }
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error cargando comunicaciones:', err);
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [contratoId]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchComunicaciones(controller.signal);
+        return () => controller.abort();
+    }, [fetchComunicaciones]);
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('es-ES', {
@@ -169,7 +177,7 @@ export default function GestorComunicaciones({ contratoId, rolActual }: GestorCo
         return (
             <div className="gestor-comunicaciones error">
                 <p>⚠️ Error: {error}</p>
-                <button onClick={fetchComunicaciones}>Reintentar</button>
+                <button onClick={() => fetchComunicaciones()}>Reintentar</button>
             </div>
         );
     }

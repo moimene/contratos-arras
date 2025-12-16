@@ -5,7 +5,7 @@
  * Según Directiva #003.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './InventarioPanel.css';
 import UploadModal from './UploadModal';
 import RejectionModal from './RejectionModal';
@@ -76,16 +76,15 @@ export default function InventarioPanel({ contratoId, rolActual, estadoContrato:
     });
     const [uploadItem, setUploadItem] = useState<InventarioItem | null>(null);
 
-    useEffect(() => {
-        fetchInventario();
-    }, [contratoId]);
-
-    const fetchInventario = async () => {
+    const fetchInventario = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/inventario`);
+            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}/inventario`, { signal });
             const result = await response.json();
+
+            if (signal?.aborted) return;
 
             if (result.success) {
                 setData(result.data);
@@ -93,11 +92,20 @@ export default function InventarioPanel({ contratoId, rolActual, estadoContrato:
                 throw new Error(result.error);
             }
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             setError(err.message || 'Error al cargar inventario');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [contratoId]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchInventario(controller.signal);
+        return () => controller.abort();
+    }, [fetchInventario]);
 
     const toggleGroup = (grupo: string) => {
         setExpandedGroups(prev => ({
