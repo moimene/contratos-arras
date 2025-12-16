@@ -4,7 +4,7 @@
  * Allows users to view and edit their profile information
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import Navbar from '../../components/layout/Navbar';
@@ -38,23 +38,22 @@ export default function UserProfile() {
     const [nombreCompleto, setNombreCompleto] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
 
-    useEffect(() => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-        fetchProfile();
-    }, [user]);
+    const fetchProfile = useCallback(async (signal?: AbortSignal) => {
+        if (!user) return;
 
-    const fetchProfile = async () => {
         try {
+            setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
             const response = await fetch(`${apiUrl}/api/profile`, {
                 headers: {
-                    'x-user-id': user!.id
-                }
+                    'x-user-id': user.id
+                },
+                signal
             });
             const data = await response.json();
+
+            if (signal?.aborted) return;
 
             if (data.success) {
                 setProfile(data.data);
@@ -63,13 +62,26 @@ export default function UserProfile() {
             } else {
                 setError(data.error);
             }
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('[UserProfile] Error:', err);
             setError('Error al cargar el perfil');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        const controller = new AbortController();
+        fetchProfile(controller.signal);
+        return () => controller.abort();
+    }, [user, fetchProfile, navigate]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
