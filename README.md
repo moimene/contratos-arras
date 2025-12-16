@@ -44,22 +44,41 @@ Chrono-Flare es una plataforma especializada en la gestión de contratos de arra
 
 ## Estados del Contrato
 
-El contrato sigue una máquina de estados definida:
+El contrato sigue una máquina de estados extendida que refleja las fases del proceso:
 
 ```
-INICIADO → BORRADOR → FIRMADO → NOTARIA → TERMINADO
-                ↓                    ↓
-              (cancelar)          LITIGIO
+Fase de Negociación:
+  INICIADO → EN_NEGOCIACION → TERMINOS_ESENCIALES_ACEPTADOS → BORRADOR_GENERADO
+
+Fase de Firma:
+  BORRADOR_GENERADO → EN_FIRMA → FIRMADO
+
+Fase de Notaría:
+  FIRMADO → CONVOCATORIA_NOTARIAL → CONVOCATORIA_ESCRITURA → NOTARIA
+
+Estados Finales:
+  NOTARIA → TERMINADO
+  NOTARIA → NO_COMPARECENCIA → LITIGIO
+  (cualquier estado) → LITIGIO (por incumplimiento)
 ```
 
-| Estado | Descripción | Acciones Disponibles |
-|--------|-------------|---------------------|
-| `INICIADO` | Alta inicial: inmueble, partes, términos | Editar contrato, subir documentos |
-| `BORRADOR` | Términos aceptados, pendiente firma | Revisar, firmar |
-| `FIRMADO` | Documento firmado en plataforma | Gestionar pagos, convocar notaría |
-| `NOTARIA` | Con cita en notaría para escritura | Subir escritura, marcar comparecencia |
-| `TERMINADO` | Compraventa completada o cerrado | Solo consulta (expediente inmutable) |
-| `LITIGIO` | En disputa por incumplimiento | Gestionar alegaciones, arbitraje |
+| Estado | Fase | Descripción | Acciones Disponibles |
+|--------|------|-------------|---------------------|
+| `INICIADO` | Negociación | Alta inicial del expediente | Editar datos, invitar partes |
+| `EN_NEGOCIACION` | Negociación | Partes revisando términos | Proponer cambios |
+| `TERMINOS_ESENCIALES_ACEPTADOS` | Negociación | Términos acordados | Generar borrador |
+| `BORRADOR_GENERADO` | Firma | Borrador PDF disponible | Revisar, invitar a firma |
+| `EN_FIRMA` | Firma | Proceso de firma iniciado | Firmar (cada parte) |
+| `FIRMADO` | Ejecución | Documento firmado | Gestionar pagos, convocar notaría |
+| `CONVOCATORIA_NOTARIAL` | Notaría | Cita notarial solicitada | Preparar documentación |
+| `CONVOCATORIA_ESCRITURA` | Notaría | Fecha de escritura fijada | Subir documentos notariales |
+| `NOTARIA` | Notaría | En trámite de escritura | Subir escritura, marcar comparecencia |
+| `NO_COMPARECENCIA` | Terminal | Alguna parte no compareció | Generar acta, iniciar alegaciones |
+| `TERMINADO` | Terminal | Compraventa completada | Solo consulta (inmutable) |
+| `LITIGIO` | Terminal | En disputa | Gestionar alegaciones, arbitraje |
+
+> [!NOTE]
+> El README simplificado muestra el flujo principal. Para la máquina de estados completa, ver `backend/src/types/models.ts`.
 
 ---
 
@@ -655,27 +674,33 @@ Cada evento crítico recibe un sello RFC3161:
 
 ## API Endpoints
 
-### Contratos
+> [!NOTE]
+> **Convención de prefijos:**
+> - `/api/contracts` — Endpoint CRUD principal (inglés, para compatibilidad)
+> - `/api/contratos` — Rutas específicas del expediente (español, nomenclatura de dominio)
+> 
+> Ambos prefijos son válidos. El frontend usa `/api/contracts` para listados y `/api/contratos/:id/*` para operaciones.
+
+### Contratos (CRUD)
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `GET` | `/api/contratos` | Listar contratos del usuario |
-| `POST` | `/api/contratos` | Crear nuevo contrato |
-| `GET` | `/api/contratos/:id` | Obtener detalle |
-| `PATCH` | `/api/contratos/:id` | Actualizar contrato |
-| `GET` | `/api/contratos/:id/eventos` | Timeline de eventos |
-| `GET` | `/api/contratos/:id/certificado` | Generar certificado |
+| `GET` | `/api/contracts` | Listar contratos del usuario |
+| `POST` | `/api/contracts` | Crear nuevo contrato |
+| `GET` | `/api/contracts/:id` | Obtener detalle |
+| `PATCH` | `/api/contracts/:id` | Actualizar contrato |
+| `GET` | `/api/contracts/:id/role` | Rol del usuario en el contrato |
 
 ### Firma y Ratificación
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `GET` | `/api/contracts/:id/firmas` | Estado de firmas del contrato |
-| `POST` | `/api/contracts/:id/firmar` | Registrar firma (in-platform) |
+| `GET` | `/api/contracts/:id/firmas` | Estado de firmas |
+| `POST` | `/api/contracts/:id/firmar` | Registrar firma |
 | `GET` | `/api/contratos/:id/ratificaciones` | Estado de ratificaciones |
 | `POST` | `/api/contratos/:id/ratificaciones` | Ratificar documento externo |
 
-### Participantes
+### Participantes y Mandatos
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -683,33 +708,75 @@ Cada evento crítico recibe un sello RFC3161:
 | `POST` | `/api/contratos/:id/miembros` | Añadir miembro |
 | `GET` | `/api/contratos/:id/invitaciones` | Listar invitaciones |
 | `POST` | `/api/contratos/:id/invitaciones` | Crear invitación |
-| `POST` | `/api/invitaciones/:token/aceptar` | Aceptar invitación |
+| `POST` | `/api/claim/:token` | Aceptar invitación por token |
 | `PATCH` | `/api/mandatos/:id/revocar` | Revocar mandato |
 
-### Documentos
+### Documentos e Inventario
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `GET` | `/api/contratos/:id/documentos` | Listar documentos |
 | `POST` | `/api/contratos/:id/documentos` | Subir documento |
-| `PATCH` | `/api/documentos/:id/validar` | Validar documento |
-| `PATCH` | `/api/documentos/:id/rechazar` | Rechazar documento |
+| `GET` | `/api/contratos/:id/inventario` | Checklist documental |
+| `PATCH` | `/api/inventario/:itemId` | Actualizar item de inventario |
+| `POST` | `/api/upload` | Subir archivo a storage |
 
-### Comunicaciones
+### Comunicaciones y Chat
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `GET` | `/api/contratos/:id/mensajes` | Listar mensajes |
+| `GET` | `/api/contratos/:id/mensajes` | Listar mensajes del chat |
 | `POST` | `/api/contratos/:id/mensajes` | Enviar mensaje |
-| `PATCH` | `/api/mensajes/:id/relevante` | Marcar relevante |
+| `GET` | `/api/contratos/:id/comunicaciones` | Comunicaciones estructuradas |
+| `POST` | `/api/contratos/:id/comunicaciones` | Crear comunicación formal |
+
+### Transiciones de Estado
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `POST` | `/api/contratos/:id/transition` | Transición de estado |
+| `GET` | `/api/contratos/:id/transition/eligibility` | Verificar elegibilidad |
 
 ### Notaría
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
+| `GET` | `/api/notaria/:id/inventario` | Inventario para notaría |
+| `POST` | `/api/notaria/:id/inventario/generar` | Generar inventario notarial |
 | `POST` | `/api/contratos/:id/notaria/convocar` | Convocar cita |
 | `POST` | `/api/contratos/:id/escritura` | Registrar escritura |
-| `POST` | `/api/contratos/:id/acta-no-comparecencia` | Registrar no comparecencia |
+
+### Eventos y Certificados
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/api/contratos/:id/eventos` | Timeline de eventos |
+| `GET` | `/api/contratos/:id/certificado` | Generar certificado PDF |
+
+### Usuario y Organización
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/api/profile` | Perfil del usuario |
+| `PUT` | `/api/profile` | Actualizar perfil |
+| `GET` | `/api/organization` | Datos de organización |
+| `PUT` | `/api/organization` | Actualizar organización |
+
+### Notificaciones y Webhooks
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `POST` | `/api/notifications/send` | Enviar notificación (n8n) |
+| `POST` | `/api/inbound/email` | Recibir email entrante |
+| `POST` | `/api/inbound/webhook` | Webhook genérico |
+
+### Health Check
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Estado del servidor |
+| `GET` | `/health/db` | Estado de la base de datos |
+| `GET` | `/health/qtsp` | Estado del servicio QTSP |
 
 ---
 
@@ -754,9 +821,26 @@ chrono-flare/
 
 | Migración | Descripción |
 |-----------|-------------|
-| `001-019` | Core del sistema, tablas base |
-| `020_roles_mandatos.sql` | miembros, mandatos, invitaciones |
-| `021_eventos_mandato.sql` | actor_mandato_id/tipo en eventos |
+| `001_lifecycle_evolution.sql` | Estructura base del contrato y máquina de estados |
+| `002_firma_y_terminacion.sql` | Estados extendidos y firma electrónica |
+| `003_saas_qtsp_master.sql` | Integración QTSP y sellado cualificado |
+| `004_refactor_estados.sql` | Refactor de estados del contrato |
+| `005_seed_eventos_chat.sql` | Seed de eventos y chat |
+| `006_directiva_003_estados.sql` | Directiva 003 de estados |
+| `007_inventario_expediente.sql` | Tabla de inventario documental |
+| `008_seed_inventario.sql` | Seed de items de inventario |
+| `009_seed_inventario_extra.sql` | Seed adicional de inventario |
+| `010_update_archivos_table.sql` | Actualización de tabla archivos |
+| `011_mensajes_table.sql` | Tabla de mensajes/chat |
+| `012_extend_archivos_versioning.sql` | Versionado de archivos |
+| `013_comunicaciones_table.sql` | Comunicaciones estructuradas |
+| `014_notaria_document_types.sql` | Tipos de documentos notariales |
+| `015_seed_extra_demo.sql` | Datos demo con estados avanzados |
+| `020_roles_mandatos.sql` | Miembros, mandatos, invitaciones |
+| `021_eventos_mandato.sql` | Actor mandato en eventos |
+
+> [!TIP]
+> Para aplicar migraciones, ver `backend/migrations/README.md` y `deploy.sh`.
 
 ---
 
