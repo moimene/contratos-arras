@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EidasBadge } from '../../components/branding/TrustBadges';
 import Navbar from '../../components/layout/Navbar';
@@ -26,12 +26,10 @@ export default function ExpedientesList() {
     const [error, setError] = useState<string | null>(null);
     const [filtroEstado, setFiltroEstado] = useState<string>('');
 
-    useEffect(() => {
-        cargarExpedientes();
-    }, [filtroEstado]);
-
-    const cargarExpedientes = async () => {
+    const cargarExpedientes = useCallback(async (signal?: AbortSignal) => {
         try {
+            setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
             let url = `${apiUrl}/api/contracts`;
 
@@ -39,8 +37,10 @@ export default function ExpedientesList() {
                 url += `?estado=${filtroEstado}`;
             }
 
-            const response = await fetch(url);
+            const response = await fetch(url, { signal });
             const data = await response.json();
+
+            if (signal?.aborted) return;
 
             if (data.success) {
                 setExpedientes(data.data);
@@ -48,12 +48,21 @@ export default function ExpedientesList() {
                 throw new Error(data.error);
             }
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error cargando expedientes:', err);
             setError(err.message || 'Error al cargar expedientes');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [filtroEstado]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        cargarExpedientes(controller.signal);
+        return () => controller.abort();
+    }, [cargarExpedientes]);
 
     const getEstadoBadgeClass = (estado: string) => {
         const clases: Record<string, string> = {
@@ -94,7 +103,7 @@ export default function ExpedientesList() {
                 <div className="error-icon">⚠️</div>
                 <h2>Error al cargar expedientes</h2>
                 <p>{error}</p>
-                <button onClick={cargarExpedientes} className="btn-primary">
+                <button onClick={() => cargarExpedientes()} className="btn-primary">
                     Reintentar
                 </button>
             </div>
