@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import { ConvocatoriaNotarial } from '../../components/notaria/ConvocatoriaNotarial';
@@ -26,17 +26,14 @@ const NotariaPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (contratoId) {
-            cargarContrato();
-        }
-    }, [contratoId]);
-
-    const cargarContrato = async () => {
+    const cargarContrato = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
+            setError(null);
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}`);
+            const response = await fetch(`${apiUrl}/api/contratos/${contratoId}`, { signal });
+
+            if (signal?.aborted) return;
 
             if (!response.ok) {
                 throw new Error('Error al cargar el contrato');
@@ -45,12 +42,23 @@ const NotariaPage: React.FC = () => {
             const data = await response.json();
             setContrato(data);
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error('Error:', err);
             setError(err.message || 'Error al cargar el contrato');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [contratoId]);
+
+    useEffect(() => {
+        if (contratoId) {
+            const controller = new AbortController();
+            cargarContrato(controller.signal);
+            return () => controller.abort();
+        }
+    }, [contratoId, cargarContrato]);
 
     const handleCitaCreada = (citaId: string) => {
         console.log('Cita creada:', citaId);
@@ -112,7 +120,7 @@ const NotariaPage: React.FC = () => {
                     ) : error ? (
                         <div className="notaria-error">
                             <p>⚠️ {error}</p>
-                            <button onClick={cargarContrato} className="btn btn-secondary">
+                            <button onClick={() => cargarContrato()} className="btn btn-secondary">
                                 Reintentar
                             </button>
                         </div>

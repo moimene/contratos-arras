@@ -5,7 +5,7 @@
  * con indicadores de documentos base y condicionales.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './ChecklistNotaria.css';
 
 interface InventarioItem {
@@ -65,21 +65,18 @@ export default function ChecklistNotaria({ contratoId, onGenerarInventario }: Ch
     const [error, setError] = useState<string | null>(null);
     const [generando, setGenerando] = useState(false);
 
-    // Cargar datos
-    useEffect(() => {
-        cargarDatos();
-    }, [contratoId]);
-
-    const cargarDatos = async () => {
+    const cargarDatos = useCallback(async (signal?: AbortSignal) => {
         try {
             setLoading(true);
             setError(null);
 
             // Cargar items y estado en paralelo
             const [itemsRes, estadoRes] = await Promise.all([
-                fetch(`${API_URL}/api/notaria/${contratoId}/inventario`),
-                fetch(`${API_URL}/api/notaria/${contratoId}/inventario/estado`),
+                fetch(`${API_URL}/api/notaria/${contratoId}/inventario`, { signal }),
+                fetch(`${API_URL}/api/notaria/${contratoId}/inventario/estado`, { signal }),
             ]);
+
+            if (signal?.aborted) return;
 
             if (!itemsRes.ok || !estadoRes.ok) {
                 throw new Error('Error cargando datos del inventario');
@@ -88,14 +85,26 @@ export default function ChecklistNotaria({ contratoId, onGenerarInventario }: Ch
             const itemsData = await itemsRes.json();
             const estadoData = await estadoRes.json();
 
+            if (signal?.aborted) return;
+
             setItems(itemsData.data || []);
             setEstado(estadoData.data || null);
         } catch (err: any) {
+            if (err.name === 'AbortError') return;
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    };
+    }, [contratoId]);
+
+    // Cargar datos
+    useEffect(() => {
+        const controller = new AbortController();
+        cargarDatos(controller.signal);
+        return () => controller.abort();
+    }, [cargarDatos]);
 
     const handleGenerarInventario = async () => {
         try {
@@ -143,7 +152,7 @@ export default function ChecklistNotaria({ contratoId, onGenerarInventario }: Ch
         return (
             <div className="checklist-notaria-error">
                 <span>⚠️ {error}</span>
-                <button onClick={cargarDatos}>Reintentar</button>
+                <button onClick={() => cargarDatos()}>Reintentar</button>
             </div>
         );
     }
