@@ -9,6 +9,7 @@ import Navbar from '../../components/layout/Navbar';
 import { useContrato } from '../../hooks/useContrato';
 import { useTipoRolUsuario, ROL_LABELS, ROL_ICONS } from '../../hooks/useTipoRolUsuario';
 import { useContratoDashboardVM } from './hooks/useContratoDashboardVM';
+import { useContratoQuery } from '../../hooks/queries/useContratoQuery';
 import { isPostFirma } from '../../domain/contrato';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MandatoProvider } from '../../contexts/MandatoContext';
@@ -60,8 +61,10 @@ export default function ContratoDashboard({
     // Use prop if provided, otherwise use URL param
     const contratoId = contratoIdProp || contratoIdUrl;
 
-    // Use the centralized hook for contract data
-    const { contrato, loading, error, refetch } = useContrato(contratoId);
+    // Use the new React Query hook for contract data
+    // const { contrato, loading, error, refetch } = useContrato(contratoId);
+    // Ahora usando React Query:
+    const { contrato, loading, error, refetch } = useContratoQuery(contratoId);
 
     // Get the current user's role (query param > localStorage > fallback)
     const { role: rolActual, source: roleSource } = useTipoRolUsuario();

@@ -11,6 +11,12 @@ import {
 } from '../repositories/contratos.repo.js';
 import { updateInmueble } from '../repositories/inmuebles.repo.js';
 import { registerEvent } from '../services/eventService.js';
+import { validate } from '../middleware/validate.js';
+import {
+    createContratoSchema,
+    updateContratoSchema,
+    linkParteSchema
+} from '../schemas/contratoParams.js';
 
 const router = Router();
 
@@ -40,7 +46,7 @@ router.get('/', async (_req: Request, res: Response) => {
  * POST /api/contratos
  * Crea un nuevo contrato con inmueble
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(createContratoSchema), async (req: Request, res: Response) => {
     try {
         const created = await createContrato(req.body);
 
@@ -81,7 +87,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * PUT /api/contratos/:id
  * Actualiza datos de contrato e inmueble
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validate(updateContratoSchema), async (req: Request, res: Response) => {
     try {
         const { contrato: cPatch, inmueble: iPatch } = req.body || {};
 
@@ -110,7 +116,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * POST /api/contratos/:id/partes
  * Vincula una parte a un contrato
  */
-router.post('/:id/partes', async (req: Request, res: Response) => {
+router.post('/:id/partes', validate(linkParteSchema), async (req: Request, res: Response) => {
     try {
         const {
             parteId,

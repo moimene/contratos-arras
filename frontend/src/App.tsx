@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ContractProvider, useContract } from './context/ContractContext';
 import { AuthProvider } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
@@ -18,6 +19,16 @@ import TeamManagement from './pages/Organization/TeamManagement';
 import NotariaPage from './pages/Notaria/NotariaPage';
 import { TrustBadges, EidasBadge } from './components/branding/TrustBadges';
 import './index.css';
+
+// Crear cliente de React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const StepRouter: React.FC = () => {
   const { currentStep } = useContract();
@@ -99,41 +110,43 @@ const WizardPage: React.FC = () => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ContractProvider>
-          <Routes>
-            {/* Auth - Login/Register */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth" element={<LoginPage />} />
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ContractProvider>
+            <Routes>
+              {/* Auth - Login/Register */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth" element={<LoginPage />} />
 
-            {/* Home - Lista de Expedientes */}
-            <Route path="/" element={<ExpedientesList />} />
-            <Route path="/expedientes" element={<ExpedientesList />} />
+              {/* Home - Lista de Expedientes */}
+              <Route path="/" element={<ExpedientesList />} />
+              <Route path="/expedientes" element={<ExpedientesList />} />
 
-            {/* Wizard - Nuevo Expediente (público) */}
-            <Route path="/wizard/nuevo" element={<WizardPage />} />
-            {/* Wizard - Editar Expediente existente */}
-            <Route path="/wizard/:contratoId" element={<WizardPage />} />
+              {/* Wizard - Nuevo Expediente (público) */}
+              <Route path="/wizard/nuevo" element={<WizardPage />} />
+              {/* Wizard - Editar Expediente existente */}
+              <Route path="/wizard/:contratoId" element={<WizardPage />} />
 
-            {/* Dashboard - Gestión de Expediente */}
-            <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
-            <Route path="/dashboard/:contratoId" element={<ContratoDashboard />} />
+              {/* Dashboard - Gestión de Expediente */}
+              <Route path="/dashboard/contrato/:contratoId" element={<ContratoDashboard />} />
+              <Route path="/dashboard/:contratoId" element={<ContratoDashboard />} />
 
-            {/* Notaría - Gestión de citas y checklist */}
-            <Route path="/notaria/:contratoId" element={<NotariaPage />} />
+              {/* Notaría - Gestión de citas y checklist */}
+              <Route path="/notaria/:contratoId" element={<NotariaPage />} />
 
-            {/* User Management */}
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/organization" element={<OrganizationSettings />} />
-            <Route path="/organization/team" element={<TeamManagement />} />
+              {/* User Management */}
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/organization" element={<OrganizationSettings />} />
+              <Route path="/organization/team" element={<TeamManagement />} />
 
-            {/* Redirect de rutas desconocidas */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </ContractProvider>
-      </AuthProvider>
-    </BrowserRouter>
+              {/* Redirect de rutas desconocidas */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ContractProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
