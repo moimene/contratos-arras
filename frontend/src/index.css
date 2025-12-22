@@ -5,25 +5,38 @@
   box-sizing: border-box;
 }
 
+/**
+ * CSS Variables - Garrigues Brand (PANTONE 3308 C)
+ * These override tokens.css for backward compatibility
+ * TODO: Eventually migrate all usages to tokens.css variables
+ */
 :root {
-  --primary: #FF6B35;
-  --primary-dark: #E5562E;
-  --secondary: #004E89;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --gray-50: #F9FAFB;
-  --gray-100: #F3F4F6;
-  --gray-200: #E5E7EB;
-  --gray-300: #D1D5DB;
-  --gray-600: #4B5563;
-  --gray-700: #374151;
-  --gray-900: #111827;
+  /* Brand Colors - PANTONE 3308 C */
+  --primary: #004D40;
+  --primary-dark: #00332B;
+  --primary-light: #E0F2F1;
+
+  /* Semantic Colors */
+  --secondary: #0288D1;
+  --success: #2E7D32;
+  --warning: #F57C00;
+  --danger: #C62828;
+
+  /* Neutral Colors */
+  --gray-50: #FAFAFA;
+  --gray-100: #F5F5F5;
+  --gray-200: #EEEEEE;
+  --gray-300: #E0E0E0;
+  --gray-400: #BDBDBD;
+  --gray-500: #9E9E9E;
+  --gray-600: #757575;
+  --gray-700: #616161;
+  --gray-900: #212121;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #FAFAFA 0%, #E0E0E0 100%);
   min-height: 100vh;
   color: var(--gray-900);
   line-height: 1.6;
@@ -123,7 +136,7 @@ body {
 .stepper-circle.active {
   background: var(--primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.4);
   transform: scale(1.1);
 }
 
@@ -240,7 +253,7 @@ body {
 .form-group select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
 }
 
 .form-group small {
@@ -291,7 +304,7 @@ body {
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 77, 64, 0.3);
 }
 
 .btn-secondary {
@@ -372,7 +385,7 @@ body {
 
 .parte-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.1);
 }
 
 .parte-info h4 {
@@ -666,7 +679,7 @@ body {
 
 .anexo-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.1);
 }
 
 .anexo-card div {
@@ -824,7 +837,7 @@ input[type="checkbox"] {
 
 .manifestacion-item:hover {
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 77, 64, 0.1);
 }
 
 .manifestacion-item label {
@@ -977,7 +990,7 @@ input[type="checkbox"] {
 
 .parte-card-full:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.15);
 }
 
 .parte-info-full {
@@ -1339,7 +1352,7 @@ input[type="checkbox"] {
 }
 
 .summary-card:hover {
-  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 77, 64, 0.12);
   border-color: var(--primary);
 }
 
@@ -2112,7 +2125,7 @@ input[type="checkbox"] {
 .modal-actions .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.3);
 }
 
 .modal-actions .btn-secondary {
@@ -3216,13 +3229,13 @@ input[type="checkbox"] {
 }
 
 .btn-firma.enabled {
-  background: linear-gradient(135deg, #FF6B35 0%, #FF8C61 100%);
+  background: linear-gradient(135deg, var(--primary, #004D40) 0%, #00695C 100%);
   color: white;
 }
 
 .btn-firma.enabled:hover:not(:disabled) {
   background: linear-gradient(135deg, #FF5722 0%, #FF7043 100%);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.3);
   transform: translateY(-2px);
 }
 
@@ -3559,7 +3572,7 @@ input[type="checkbox"] {
 
 .auth-ui-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 77, 64, 0.3);
 }
 
 @media (max-width: 480px) {
@@ -3643,7 +3656,7 @@ input[type="checkbox"] {
 .auth-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
 }
 
 .auth-input:disabled {

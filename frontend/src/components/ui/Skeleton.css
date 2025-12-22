@@ -1,0 +1,53 @@
+/**
+ * Skeleton Styles - Garrigues UI Kit
+ */
+
+.ui-skeleton {
+    background: linear-gradient(90deg,
+            var(--color-gray-200, #EEEEEE) 0%,
+            var(--color-gray-100, #F5F5F5) 50%,
+            var(--color-gray-200, #EEEEEE) 100%);
+    background-size: 200% 100%;
+    animation: ui-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes ui-skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Text */
+.ui-skeleton--text {
+    height: 1em;
+    border-radius: var(--radius-sm, 4px);
+    margin-bottom: 0.5em;
+}
+
+.ui-skeleton--text:last-child {
+    margin-bottom: 0;
+}
+
+/* Circular */
+.ui-skeleton--circular {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+}
+
+/* Rectangular */
+.ui-skeleton--rectangular {
+    border-radius: var(--radius-md, 8px);
+    min-height: 100px;
+}
+
+/* Lines Container */
+.ui-skeleton-lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs, 8px);
+}

@@ -1,0 +1,120 @@
+/**
+ * Alert Styles - Garrigues UI Kit
+ */
+
+.ui-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm, 12px);
+    padding: var(--spacing-md, 16px);
+    border-radius: var(--radius-md, 8px);
+    border-left: 4px solid;
+}
+
+/* Content */
+.ui-alert__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ui-alert__title {
+    margin: 0 0 var(--spacing-xxs, 4px) 0;
+    font-family: var(--font-family-primary, 'Montserrat', sans-serif);
+    font-size: var(--font-size-body, 16px);
+    font-weight: var(--font-weight-semibold, 600);
+    line-height: var(--line-height-body, 24px);
+}
+
+.ui-alert__message {
+    font-family: var(--font-family-primary, 'Montserrat', sans-serif);
+    font-size: var(--font-size-small, 14px);
+    line-height: var(--line-height-small, 20px);
+}
+
+.ui-alert__message p {
+    margin: 0;
+}
+
+/* Icon */
+.ui-alert__icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+}
+
+/* Dismiss Button */
+.ui-alert__dismiss {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: -4px -4px -4px 0;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm, 4px);
+    background: transparent;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all var(--transition-fast, 150ms ease);
+}
+
+.ui-alert__dismiss:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.ui-alert__dismiss:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+/* Info Variant */
+.ui-alert--info {
+    background: var(--color-info-bg, #E1F5FE);
+    border-color: var(--color-info, #0288D1);
+    color: #01579B;
+}
+
+.ui-alert--info .ui-alert__icon {
+    color: var(--color-info, #0288D1);
+}
+
+/* Warning Variant */
+.ui-alert--warning {
+    background: var(--color-warning-bg, #FFF3E0);
+    border-color: var(--color-warning, #F57C00);
+    color: #E65100;
+}
+
+.ui-alert--warning .ui-alert__icon {
+    color: var(--color-warning, #F57C00);
+}
+
+/* Critical Variant */
+.ui-alert--critical {
+    background: var(--color-error-bg, #FFEBEE);
+    border-color: var(--color-error, #C62828);
+    color: #B71C1C;
+}
+
+.ui-alert--critical .ui-alert__icon {
+    color: var(--color-error, #C62828);
+}
+
+/* Success Variant */
+.ui-alert--success {
+    background: var(--color-success-bg, #E8F5E9);
+    border-color: var(--color-success, #2E7D32);
+    color: #1B5E20;
+}
+
+.ui-alert--success .ui-alert__icon {
+    color: var(--color-success, #2E7D32);
+}

@@ -82,12 +82,12 @@
 }
 
 .nav-link.active {
-    background: #FF6B35;
+    background: var(--primary, #004D40);
     color: white;
 }
 
 .nav-link.active:hover {
-    background: #e55a2b;
+    background: var(--primary-dark, #00332B);
 }
 
 /* User Menu */
@@ -123,7 +123,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #FF6B35 0%, #FF8F5D 100%);
+    background: linear-gradient(135deg, var(--primary, #004D40) 0%, #00695C 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -276,13 +276,13 @@
 
 /* Login Button */
 .login-btn {
-    background: #FF6B35 !important;
+    background: var(--primary, #004D40) !important;
     color: white !important;
     padding: 0.5rem 1.25rem !important;
 }
 
 .login-btn:hover {
-    background: #e55a2b !important;
+    background: var(--primary-dark, #00332B) !important;
 }
 
 /* Responsive */

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import { errorHandler } from './middleware/errorHandler.js';
 import contratosRoutes from './routes/contratos.js';
 import partesRoutes from './routes/partes.js';
 import aceptacionesRoutes from './routes/aceptaciones.js';
@@ -115,12 +116,8 @@ app.use('/api/contracts', roleRoutes);  // Rol de usuario en contrato
 app.use('/api', participantesRoutes);  // Miembros, mandatos e invitaciones
 app.use('/api/contratos', ratificacionesRoutes);  // Ratificaciones de documentos externos
 
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        error: err.message || 'Error interno del servidor',
-    });
-});
+// Global Error Handler
+app.use(errorHandler);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
