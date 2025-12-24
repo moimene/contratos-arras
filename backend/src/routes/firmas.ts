@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { nowIso } from '../utils/time.js';
 import { getContratoFull, setEstado } from '../repositories/contratos.repo.js';
 import { registerEvent } from '../services/eventService.js';
+import { requirePermission } from '../middleware/authorization.js';
 
 const router = Router();
 
@@ -36,17 +37,12 @@ router.get('/:contratoId', async (req: Request, res: Response) => {
  * 2. La parte solicitada debe estar obligada a firmar
  * 3. El usuario actual debe ser miembro con rol correspondiente o tener mandato con puede_firmar
  */
-router.post('/:contratoId', async (req: Request, res: Response) => {
+router.post('/:contratoId', requirePermission('canSign'), async (req: Request, res: Response) => {
     try {
         const { parteId } = req.body;
-        const currentUserId = req.headers['x-user-id'] as string;
-
-        // Verificar autenticación
-        if (!currentUserId) {
-            return res.status(401).json({
-                error: 'Usuario no autenticado. Se requiere header x-user-id.',
-            });
-        }
+        // requirePermission populates authContext
+        const authContext = (req as any).authContext;
+        const currentUserId = authContext.userId;
 
         const full = await getContratoFull(req.params.contratoId);
 
@@ -71,44 +67,32 @@ router.post('/:contratoId', async (req: Request, res: Response) => {
         // ============================================
         // VALIDACIÓN DE ROL: ENTREGA B
         // ============================================
-        // Verificar que el usuario actual tiene permiso para firmar por esta parte
-
-        // 1. Buscar si el usuario es miembro del expediente
-        const { data: miembro, error: miembroError } = await supabase
-            .from('miembros_expediente')
-            .select('*, mandatos:mandatos_expediente(*)')
-            .eq('contrato_id', req.params.contratoId)
-            .eq('usuario_id', currentUserId)
-            .eq('estado_acceso', 'ACTIVO')
-            .maybeSingle();
-
-        if (miembroError) {
-            console.error('Error buscando miembro:', miembroError);
-            return res.status(500).json({
-                error: 'Error verificando permisos de firma',
-            });
-        }
-
-        if (!miembro) {
-            return res.status(403).json({
-                error: 'No eres miembro activo de este expediente',
-            });
-        }
-
-        // 2. Verificar si puede firmar por esta parte
-        const rolParte = parteAFirmar.rol_en_contrato || parteAFirmar.tipo_parte; // COMPRADOR o VENDEDOR
 
         // El usuario puede firmar si:
         // a) Su rol es el mismo que el de la parte (COMPRADOR firma como COMPRADOR)
-        // b) Tiene un mandato activo con puede_firmar para esa parte
-        const esMismoRol = miembro.tipo_rol_usuario === rolParte;
-        const tieneMandatoFirma = miembro.mandatos?.some(
-            (m: any) => m.puede_firmar && m.estado_mandato === 'ACTIVO'
-        );
+        // b) Tiene un mandato activo (ya verificado por requirePermission('canSign') si está actuando como tal)
 
-        if (!esMismoRol && !tieneMandatoFirma) {
+        // Recuperar el rol de la parte que se intenta firmar (COMPRADOR/VENDEDOR)
+        const rolParteObjetivo = parteAFirmar.rol_en_contrato || parteAFirmar.tipo_parte;
+
+        const miembro = authContext.miembro;
+        const mandato = authContext.mandatoActivo;
+
+        // Validar si el rol del usuario coincide con el objetivo
+        const esMismoRol = miembro?.tipo_rol_usuario === rolParteObjetivo;
+
+        // Validar si el mandato activo permite firmar para este objetivo
+        // (Asumimos que el tipo de mandato 'PARTE_COMPRADORA' mapea a rol 'COMPRADOR', etc.)
+        let mandatoValido = false;
+        if (mandato && mandato.puede_firmar) {
+            if (rolParteObjetivo === 'COMPRADOR' && mandato.tipo_mandato === 'PARTE_COMPRADORA') mandatoValido = true;
+            if (rolParteObjetivo === 'VENDEDOR' && mandato.tipo_mandato === 'PARTE_VENDEDORA') mandatoValido = true;
+            if (mandato.tipo_mandato === 'AMBAS_PARTES') mandatoValido = true;
+        }
+
+        if (!esMismoRol && !mandatoValido) {
             return res.status(403).json({
-                error: `No tienes permisos para firmar como ${rolParte}. Solo puedes firmar por tu propio rol o con mandato autorizado.`,
+                error: `No tienes permisos para firmar como ${rolParteObjetivo}. Tu rol es ${miembro?.tipo_rol_usuario} y tu mandato es ${mandato?.tipo_mandato || 'ninguno'}.`,
             });
         }
 

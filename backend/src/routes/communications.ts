@@ -21,6 +21,7 @@ import {
     type CanalComunicacion,
     type EstadoComunicacion
 } from '../services/communicationService.js';
+import { requirePermission } from '../middleware/authorization.js';
 
 const router = Router();
 
@@ -138,7 +139,7 @@ router.get('/:id/hilo', async (req: Request, res: Response) => {
  * POST /api/contratos/:contratoId/comunicaciones
  * Crea una nueva comunicación interna
  */
-router.post('/:contratoId/comunicaciones', async (req: Request, res: Response) => {
+router.post('/:contratoId/comunicaciones', requirePermission('canSendCommunications'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
         const {
@@ -191,7 +192,7 @@ router.post('/:contratoId/comunicaciones', async (req: Request, res: Response) =
  * POST /api/contratos/:contratoId/comunicaciones/externas
  * Importa una comunicación externa al expediente
  */
-router.post('/:contratoId/comunicaciones/externas', async (req: Request, res: Response) => {
+router.post('/:contratoId/comunicaciones/externas', requirePermission('canUploadDocs'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
         const {

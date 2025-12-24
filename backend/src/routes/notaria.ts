@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
 import { registerEvent } from '../services/eventService.js';
 import { notariaService } from '../services/notariaService.js';
+import { requirePermission } from '../middleware/authorization.js';
 
 const router = Router();
 
@@ -10,7 +11,7 @@ const router = Router();
  * Genera el inventario de documentos para fase NOTARIA
  * basado en las condiciones del contrato (módulos)
  */
-router.post('/:contratoId/generar-inventario', async (req: Request, res: Response) => {
+router.post('/:contratoId/generar-inventario', requirePermission('canValidateDocs'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
         const datosContrato = req.body.datosContrato || null;
@@ -72,7 +73,7 @@ router.get('/:contratoId/inventario/estado', async (req: Request, res: Response)
  * POST /api/notaria/:contratoId/crear-cita
  * Crea una cita en la notaría y convoca a las partes
  */
-router.post('/:contratoId/crear-cita', async (req: Request, res: Response) => {
+router.post('/:contratoId/crear-cita', requirePermission('canCreateNotaryAppointment'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
         const {
@@ -143,7 +144,7 @@ router.post('/:contratoId/crear-cita', async (req: Request, res: Response) => {
  * POST /api/notaria/:contratoId/convocar-partes
  * Envía convocatoria a todas las partes para la cita
  */
-router.post('/:contratoId/convocar-partes', async (req: Request, res: Response) => {
+router.post('/:contratoId/convocar-partes', requirePermission('canCreateNotaryAppointment'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
         const { cita_id, mensaje_adicional } = req.body;
@@ -212,7 +213,7 @@ router.post('/:contratoId/convocar-partes', async (req: Request, res: Response) 
  * POST /api/notaria/:contratoId/generar-minuta
  * Genera la minuta de escritura de compraventa
  */
-router.post('/:contratoId/generar-minuta', async (req: Request, res: Response) => {
+router.post('/:contratoId/generar-minuta', requirePermission('canGenerateCertificate'), async (req: Request, res: Response) => {
     try {
         const { contratoId } = req.params;
 
