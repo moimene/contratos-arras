@@ -84,7 +84,7 @@ class FirmaService {
         // 2. Verificar que la parte está autorizada a firmar
         const { data: parte, error: parteError } = await supabase
             .from('contratos_partes')
-            .select('parte_id, obligado_firmar')
+            .select('parte_id, obligado_firmar, rol_en_contrato')
             .eq('contrato_id', contratoId)
             .eq('parte_id', parteId)
             .single();
@@ -139,7 +139,7 @@ class FirmaService {
         }
 
         // 6. Crear evento en timeline
-        await this.crearEventoFirma(contratoId, parteId, tst, data.userId);
+        await this.crearEventoFirma(contratoId, parteId, tst, data.userId, parte.rol_en_contrato);
 
         // 7. Verificar si todas las firmas están completas
         const estadoFirmas = await this.obtenerEstadoFirmas(contratoId);
@@ -319,7 +319,7 @@ class FirmaService {
     // MÉTODOS PRIVADOS
     // ================================================
 
-    private async crearEventoFirma(contratoId: string, parteId: string, tst: any, userId?: string): Promise<void> {
+    private async crearEventoFirma(contratoId: string, parteId: string, tst: any, userId?: string, actorTipo: string = 'COMPRADOR'): Promise<void> {
         const payload = {
             tipo: 'FIRMA_REGISTRADA',
             parteId,
@@ -334,7 +334,7 @@ class FirmaService {
             tst_fecha: tst.fecha.toISOString(),
             tst_token: tst.token,
             tst_proveedor: tst.proveedor,
-            actor_tipo: 'COMPRADOR', // TODO: determinar desde el rol
+            actor_tipo: actorTipo,
             actor_usuario_id: userId || null,
         });
     }
