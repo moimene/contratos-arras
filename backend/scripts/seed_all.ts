@@ -2,10 +2,10 @@
  * seed_all.ts — Chrono‑Flare TEST reset + full seed (15 expedientes)
  * See seed_all_README.md for usage.
  */
-import fs from "node:fs";
-import path from "node:path";
-import process from "node:process";
-import crypto from "node:crypto";
+import fs from "fs";
+import path from "path";
+import process from "process";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Client as PgClient } from "pg";
 import unzipper from "unzipper";
@@ -557,10 +557,14 @@ async function main() {
     const serviceKey = mustEnv("SUPABASE_SERVICE_KEY");
     const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    const DOCS_ZIP = process.env.DOCS_ZIP || "./seeds/chrono_flare_testdocs_bundle.zip";
-    const COMMS_ZIP = process.env.COMMS_ZIP || "./seeds/chrono_flare_comms_bundle.zip";
-    const QTSP_ZIP = process.env.QTSP_ZIP || "./seeds/chrono_flare_qtsp_bundle.zip";
-    const CHAT_ZIP = process.env.CHAT_ZIP || "./seeds/chrono_flare_chat_bundle.zip";
+    // Default paths - relative to where the script is run from
+    // If running from backend/: ./seeds/
+    // If running from project root: ./backend/seeds/
+    const seedsDir = fs.existsSync("./seeds") ? "./seeds" : "./backend/seeds";
+    const DOCS_ZIP = process.env.DOCS_ZIP || `${seedsDir}/chrono_flare_testdocs_bundle.zip`;
+    const COMMS_ZIP = process.env.COMMS_ZIP || `${seedsDir}/chrono_flare_comms_bundle.zip`;
+    const QTSP_ZIP = process.env.QTSP_ZIP || `${seedsDir}/chrono_flare_qtsp_bundle.zip`;
+    const CHAT_ZIP = process.env.CHAT_ZIP || `${seedsDir}/chrono_flare_chat_bundle.zip`;
 
     if (flags.resetDb) {
         console.log("[db] reset...");
