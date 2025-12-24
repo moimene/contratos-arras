@@ -121,13 +121,13 @@ async function resetDb() {
 async function batchInsert(table: string, rows: any[], batchSize = 50) {
     if (rows.length === 0) return;
 
-    console.log(`[db] inserting ${table} count=${rows.length}`);
+    console.log(`[db] upserting ${table} count=${rows.length}`);
 
     for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize);
-        const { error } = await supabase.from(table).insert(batch);
+        const { error } = await supabase.from(table).upsert(batch);
         if (error) {
-            console.error(`[db] insert ${table} batch ${i}/${rows.length} error:`, error.message);
+            console.error(`[db] upsert ${table} batch ${i}/${rows.length} error:`, error.message);
             throw error;
         }
     }
@@ -604,20 +604,11 @@ async function main() {
                 id: a.id,
                 contrato_id: a.contrato_id,
                 parte_id: null,
-                tipo: a.tipo ?? "CERTIFICADO_EVENTOS_PDF",
+                tipo: "OTRO", // CERTIFICADO_EVENTOS_PDF not in constraint
                 nombre_original: a.nombre_original ?? a.nombreOriginal ?? "certificado.pdf",
                 mime_type: a.mime_type ?? "application/pdf",
                 ruta: a.ruta,
                 tamano: a.tamano,
-                hash_sha256: a.hash_sha256,
-                version: 1,
-                fecha_subida: new Date().toISOString(),
-                sello_qtsp_id: a.sello_qtsp_id ?? null,
-                es_vigente: true,
-                reemplazado_por: null,
-                version_original_id: null,
-                categoria: "LEGAL",
-                titulo: "Certificado de eventos",
             }));
             await batchInsert("archivos", rows);
         }
