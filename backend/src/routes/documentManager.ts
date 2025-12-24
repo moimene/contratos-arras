@@ -292,16 +292,24 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
         }
 
         // Usar Supabase Storage para obtener URL firmada
-        const storagePath = archivo.nombre_almacenado || archivo.ruta;
-        console.log(`[descargar] storagePath=${storagePath}`);
+        let storagePath = archivo.nombre_almacenado || archivo.ruta;
+        console.log(`[descargar] Original storagePath=${storagePath}`);
 
         if (!storagePath) {
             console.log(`[descargar] No storage path found`);
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
         }
 
-        // Note: Storage paths in DB include the full path within the bucket
-        // e.g., 'documentos/exp04/...' means bucket:documentos/path:documentos/exp04/...
+        // Strip bucket-like prefixes from path since they're already specified in storage.from()
+        // DB stores 'documentos/exp04/...' but files are at 'exp04/...' in the bucket
+        const bucketPrefixes = ['documentos/', 'contratos-pdf/', 'justificantes/'];
+        for (const prefix of bucketPrefixes) {
+            if (storagePath.startsWith(prefix)) {
+                storagePath = storagePath.substring(prefix.length);
+                console.log(`[descargar] Stripped prefix ${prefix}, new storagePath=${storagePath}`);
+                break;
+            }
+        }
 
         // Generar URL firmada válida por 1 hora
         console.log(`[descargar] Requesting signed URL for path=${storagePath}`);
@@ -375,10 +383,19 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
         }
 
         // Usar Supabase Storage para obtener URL firmada
-        const storagePath = archivo.nombre_almacenado || archivo.ruta;
+        let storagePath = archivo.nombre_almacenado || archivo.ruta;
 
         if (!storagePath) {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
+        }
+
+        // Strip bucket-like prefixes from path
+        const bucketPrefixes = ['documentos/', 'contratos-pdf/', 'justificantes/'];
+        for (const prefix of bucketPrefixes) {
+            if (storagePath.startsWith(prefix)) {
+                storagePath = storagePath.substring(prefix.length);
+                break;
+            }
         }
 
         // Generar URL firmada válida por 1 hora
