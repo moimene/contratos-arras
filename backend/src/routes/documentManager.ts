@@ -311,7 +311,12 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
 
         if (signError || !signedData?.signedUrl) {
             console.error('[descargar] Error generando URL firmada:', signError);
-            return res.status(500).json({ success: false, error: 'Error al generar URL de descarga' });
+            return res.status(500).json({
+                success: false,
+                error: 'Error al generar URL de descarga',
+                details: signError?.message || 'No signedUrl returned',
+                path: storagePath
+            });
         }
 
         console.log(`[descargar] Success! Redirecting to signed URL`);
