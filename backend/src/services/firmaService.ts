@@ -263,6 +263,12 @@ class FirmaService {
             .eq('contrato_id', contratoId)
             .eq('valida', true);
 
+        // 2.b Obtener conteo de documentos firmados externamente
+        const { count: documentosFirmadosCount } = await supabase
+            .from('documentos_firmados')
+            .select('id', { count: 'exact', head: true })
+            .eq('contrato_id', contratoId);
+
         const firmasMap = new Map(
             (firmasElectronicas || []).map((f: any) => [
                 f.parte_id,
@@ -288,7 +294,7 @@ class FirmaService {
             firmasRequeridas,
             firmasCompletadas,
             firmasPlataforma: firmasElectronicas?.length || 0,
-            documentosFirmados: 0, // TODO: calcular documentos firmados
+            documentosFirmados: documentosFirmadosCount || 0,
             todasFirmasCompletas: firmasCompletadas === firmasRequeridas,
             detalles,
         };
