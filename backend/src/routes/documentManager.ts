@@ -300,22 +300,39 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
         }
 
-        // Strip bucket-like prefixes from path since they're already specified in storage.from()
-        // DB stores 'documentos/exp04/...' but files are at 'exp04/...' in the bucket
+        // Try to get signed URL - first with original path, then with prefix stripping as fallback
+        // This handles both old seeding (files at exp##/...) and new seeding (files at documentos/exp##/...)
         const bucketPrefixes = ['documentos/', 'contratos-pdf/', 'justificantes/'];
-        for (const prefix of bucketPrefixes) {
-            if (storagePath.startsWith(prefix)) {
-                storagePath = storagePath.substring(prefix.length);
-                console.log(`[descargar] Stripped prefix ${prefix}, new storagePath=${storagePath}`);
-                break;
-            }
-        }
 
-        // Generar URL firmada válida por 1 hora
-        console.log(`[descargar] Requesting signed URL for path=${storagePath}`);
-        const { data: signedData, error: signError } = await supabase.storage
+        // Helper to strip prefix
+        const stripPrefix = (path: string): string => {
+            for (const prefix of bucketPrefixes) {
+                if (path.startsWith(prefix)) {
+                    return path.substring(prefix.length);
+                }
+            }
+            return path;
+        };
+
+        // Try original path first
+        console.log(`[descargar] Trying original storagePath=${storagePath}`);
+        let { data: signedData, error: signError } = await supabase.storage
             .from('documentos')
             .createSignedUrl(storagePath, 3600);
+
+        // If failed and path has prefix, try stripped version as fallback
+        if ((signError || !signedData?.signedUrl) && bucketPrefixes.some(p => storagePath.startsWith(p))) {
+            const strippedPath = stripPrefix(storagePath);
+            console.log(`[descargar] Original failed, trying stripped storagePath=${strippedPath}`);
+            const fallback = await supabase.storage
+                .from('documentos')
+                .createSignedUrl(strippedPath, 3600);
+            signedData = fallback.data;
+            signError = fallback.error;
+            if (!signError && signedData?.signedUrl) {
+                storagePath = strippedPath; // Update for logging
+            }
+        }
 
         if (signError || !signedData?.signedUrl) {
             console.error('[descargar] Error generando URL firmada:', signError);
@@ -389,19 +406,33 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
         }
 
-        // Strip bucket-like prefixes from path
+        // Try to get signed URL - first with original path, then with prefix stripping as fallback
         const bucketPrefixes = ['documentos/', 'contratos-pdf/', 'justificantes/'];
-        for (const prefix of bucketPrefixes) {
-            if (storagePath.startsWith(prefix)) {
-                storagePath = storagePath.substring(prefix.length);
-                break;
-            }
-        }
 
-        // Generar URL firmada válida por 1 hora
-        const { data: signedData, error: signError } = await supabase.storage
+        // Helper to strip prefix
+        const stripPrefix = (path: string): string => {
+            for (const prefix of bucketPrefixes) {
+                if (path.startsWith(prefix)) {
+                    return path.substring(prefix.length);
+                }
+            }
+            return path;
+        };
+
+        // Try original path first
+        let { data: signedData, error: signError } = await supabase.storage
             .from('documentos')
             .createSignedUrl(storagePath, 3600);
+
+        // If failed and path has prefix, try stripped version as fallback
+        if ((signError || !signedData?.signedUrl) && bucketPrefixes.some(p => storagePath.startsWith(p))) {
+            const strippedPath = stripPrefix(storagePath);
+            const fallback = await supabase.storage
+                .from('documentos')
+                .createSignedUrl(strippedPath, 3600);
+            signedData = fallback.data;
+            signError = fallback.error;
+        }
 
         if (signError || !signedData?.signedUrl) {
             console.error('Error generando URL firmada:', signError);
