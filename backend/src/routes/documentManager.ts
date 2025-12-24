@@ -117,7 +117,7 @@ router.get('/contratos/:contratoId/documentos', async (req: Request, res: Respon
                     id: archivo.id,
                     nombreOriginal: archivo.nombre_original,
                     tipoMime: archivo.tipo_mime,
-                    tamanoBytes: archivo.tamano_bytes,
+                    tamanoBytes: archivo.tamano,
                     hashSha256: archivo.hash_sha256,
                     version: archivo.version,
                     fechaSubida: archivo.fecha_hora_subida || archivo.created_at
@@ -154,7 +154,7 @@ router.get('/contratos/:contratoId/documentos', async (req: Request, res: Respon
                     id: archivo.id,
                     nombreOriginal: archivo.nombre_original,
                     tipoMime: archivo.tipo_mime,
-                    tamanoBytes: archivo.tamano_bytes,
+                    tamanoBytes: archivo.tamano,
                     hashSha256: archivo.hash_sha256,
                     version: archivo.version,
                     fechaSubida: archivo.fecha_hora_subida || archivo.created_at
@@ -281,7 +281,7 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
 
         const { data: archivo, error } = await supabase
             .from('archivos')
-            .select('ruta_storage, nombre_almacenado, nombre_original, tipo_mime, contrato_id')
+            .select('ruta, nombre_almacenado, nombre_original, tipo_mime, contrato_id')
             .eq('id', id)
             .single();
 
@@ -290,7 +290,7 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
         }
 
         // Usar Supabase Storage para obtener URL firmada
-        const storagePath = archivo.ruta_storage || archivo.nombre_almacenado;
+        const storagePath = archivo.nombre_almacenado || archivo.ruta;
 
         if (!storagePath) {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
@@ -341,7 +341,7 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
 
         const { data: archivo, error } = await supabase
             .from('archivos')
-            .select('ruta_storage, nombre_almacenado, nombre_original, tipo_mime')
+            .select('ruta, nombre_almacenado, nombre_original, tipo_mime')
             .eq('id', id)
             .single();
 
@@ -360,7 +360,7 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
         }
 
         // Usar Supabase Storage para obtener URL firmada
-        const storagePath = archivo.ruta_storage || archivo.nombre_almacenado;
+        const storagePath = archivo.nombre_almacenado || archivo.ruta;
 
         if (!storagePath) {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
