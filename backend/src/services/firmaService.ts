@@ -7,6 +7,7 @@
 
 import { supabase } from '../config/supabase.js';
 import { qtspService, calcularHash } from './qtspService.js';
+import { guardarArchivo } from './storageService.js';
 
 // ================================================
 // TIPOS
@@ -185,21 +186,41 @@ class FirmaService {
         // 2. Obtener TST del hash
         const tst = await qtspService.obtenerSelloTiempo(hashPdf);
 
-        // 3. Subir PDF a storage (simplificado, en producción usar Supabase Storage o S3)
-        // Por ahora, guardamos el hash y referencia
+        // 3. Subir PDF a storage
         const archivoId = crypto.randomUUID();
+        const nombreArchivo = `firmado_${archivoId}.pdf`;
 
-        // TODO: Implementar upload real del archivo
-        // const { data: archivo } = await supabase.storage
-        //   .from('contratos')
-        //   .upload(`${contratoId}/firmado_${archivoId}.pdf`, archivoPdf);
+        const uploadResult = await guardarArchivo(
+            archivoPdf,
+            nombreArchivo,
+            contratoId,
+            'documentos_firmados'
+        );
+
+        // Crear registro en tabla archivos
+        const { error: archivoError } = await supabase
+            .from('archivos')
+            .insert({
+                id: archivoId,
+                contrato_id: contratoId,
+                nombre_original: nombreArchivo,
+                mime_type: 'application/pdf',
+                ruta: uploadResult.path,
+                tamano: uploadResult.size,
+                tipo: 'OTRO' // TODO: Definir tipo específico si existe
+            });
+
+        if (archivoError) {
+            console.error('Error al registrar archivo:', archivoError);
+            throw new Error('Error al registrar archivo del documento firmado');
+        }
 
         // 4. Registrar documento firmado
         const { data: documento, error: documentoError } = await supabase
             .from('documentos_firmados')
             .insert({
                 contrato_id: contratoId,
-                archivo_id: archivoId, // Temporal
+                archivo_id: archivoId,
                 hash_pdf: hashPdf,
                 tipo_firma: tipoFirma,
                 fecha_firma: fechaFirma.toISOString(),
