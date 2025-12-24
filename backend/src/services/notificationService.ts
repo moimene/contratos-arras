@@ -117,6 +117,76 @@ export async function triggerCommunicationWebhook(
         };
 
         // 6. Enviar webhook
+        return await sendWebhook(event, payload, comunicacionId);
+
+    } catch (error: any) {
+        console.error('[Notifications] Webhook error:', error.message);
+
+        await logWebhookResult(comunicacionId, event, 0, null, error.message);
+
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Envía invitación a la organización
+ */
+export async function sendInvitationNotification(
+    invitacion: {
+        email: string;
+        rol: string;
+        token: string;
+        organizacion: {
+            id: string;
+            nombre: string;
+        };
+        invitadoPor: {
+            nombre: string;
+            email: string;
+        };
+    }
+): Promise<WebhookResult> {
+    const event = 'INVITACION_ORGANIZACION';
+
+    const payload = {
+        event,
+        timestamp: new Date().toISOString(),
+        invitacion: {
+            email: invitacion.email,
+            rol: invitacion.rol,
+            link: `${process.env.FRONTEND_URL || 'https://app.chrono-flare.com'}/accept-invite?token=${invitacion.token}`,
+            token: invitacion.token
+        },
+        organizacion: invitacion.organizacion,
+        remitente: invitacion.invitadoPor,
+        notificarVia: ['EMAIL']
+    };
+
+    return await sendWebhook(event, payload);
+}
+
+/**
+ * Función genérica para enviar webhooks a n8n
+ */
+async function sendWebhook(
+    event: string,
+    payload: any,
+    referenceId: string | null = null
+): Promise<WebhookResult> {
+    if (!N8N_ENABLED) {
+        console.log('[Notifications] n8n webhooks disabled');
+        return { success: true, error: 'n8n disabled' };
+    }
+
+    if (!N8N_WEBHOOK_URL) {
+        console.warn('[Notifications] N8N_WEBHOOK_URL not configured');
+        return { success: false, error: 'Webhook URL not configured' };
+    }
+
+    try {
         const response = await fetch(N8N_WEBHOOK_URL, {
             method: 'POST',
             headers: {
@@ -129,8 +199,16 @@ export async function triggerCommunicationWebhook(
 
         const responseData = await response.text();
 
-        // 7. Registrar resultado
-        await logWebhookResult(comunicacionId, event, response.status, responseData);
+        // Registrar resultado si hay un ID de referencia (e.g. comunicacion_id)
+        if (referenceId) {
+            await logWebhookResult(referenceId, event, response.status, responseData);
+        } else {
+             // Si no hay ID de referencia, podemos loguear de forma genérica o saltar este paso
+             // Por ahora solo log en consola
+             if (!response.ok) {
+                 console.error(`[Notifications] Webhook ${event} failed:`, responseData);
+             }
+        }
 
         if (!response.ok) {
             throw new Error(`Webhook failed with status ${response.status}: ${responseData}`);
@@ -143,11 +221,12 @@ export async function triggerCommunicationWebhook(
             statusCode: response.status,
             response: responseData
         };
-
     } catch (error: any) {
-        console.error('[Notifications] Webhook error:', error.message);
+        console.error(`[Notifications] Error sending webhook ${event}:`, error.message);
 
-        await logWebhookResult(comunicacionId, event, 0, null, error.message);
+        if (referenceId) {
+            await logWebhookResult(referenceId, event, 0, null, error.message);
+        }
 
         return {
             success: false,
