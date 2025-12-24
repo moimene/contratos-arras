@@ -8,30 +8,10 @@
 import { supabase } from '../config/supabase.js';
 import { triggerCommunicationWebhook } from './notificationService.js';
 import { qtspService, calcularHash } from './qtspService.js';
-
-// ================================================
-// TIPOS
-// ================================================
-
-export interface GenerarActaData {
-    contratoId: string;
-    citaNotarialId: string;
-    parteComparecienteId?: string;  // Opcional: quien sí compareció
-    parteNoComparecienteId: string;  // Obligatorio: quien NO compareció
-    fechaHoraCita: Date;
-    notaria: string;
-    resumenHechos: string;
-}
-
-export interface ConsecuenciasArras {
-    tipoArras: 'CONFIRMATORIAS' | 'PENITENCIALES' | 'PENALES';
-    importeArras: number;
-    precioTotal: number;
-    parteIncumplidora: 'COMPRADOR' | 'VENDEDOR';
-    consecuencia: string;
-    importePenalizacion?: number;
-    derechoResolucion: boolean;
-}
+import { generateActaNoComparecenciaPDF } from './pdfService.js';
+import { guardarArchivo } from './storageService.js';
+import { GenerarActaData, ConsecuenciasArras } from '../types/acta.js';
+import crypto from 'crypto';
 
 // ================================================
 // SERVICIO PRINCIPAL
@@ -105,8 +85,52 @@ class ActaService {
         // 6. Obtener TST del acta completa
         const tst = await qtspService.obtenerSelloTiempo(hashActa);
 
-        // 7. TODO: Generar PDF (simplificado por ahora)
-        const pdfPath = `/actas/acta_${contratoId}_${Date.now()}.pdf`;
+        // 7. Generar y guardar PDF
+        const pdfBuffer = await generateActaNoComparecenciaPDF({
+            contrato,
+            parteNoCompareciente,
+            fechaHoraCita,
+            notaria,
+            resumenHechos,
+            consecuencias,
+            hashActa,
+            tst: {
+                fecha: tst.fecha,
+                proveedor: tst.proveedor,
+            },
+        });
+
+        const filename = `Acta_No_Comparecencia_${contratoId}_${Date.now()}.pdf`;
+        const storageResult = await guardarArchivo(
+            pdfBuffer,
+            filename,
+            contratoId,
+            'ACTA_NO_COMPARECENCIA'
+        );
+
+        // Registrar archivo en tabla 'archivos'
+        const archivoId = crypto.randomUUID();
+        const { error: archivoError } = await supabase
+            .from('archivos')
+            .insert({
+                id: archivoId,
+                contrato_id: contratoId,
+                nombre_original: filename,
+                nombre_almacenado: storageResult.path,
+                tipo_mime: 'application/pdf',
+                tamano_bytes: storageResult.size,
+                hash_sha256: storageResult.hash,
+                ruta_storage: storageResult.path,
+                url_publica: storageResult.publicUrl,
+                tipo_documento: 'ACTA_NO_COMPARECENCIA',
+                subido_por_rol: 'SISTEMA',
+                origen: 'GENERATED'
+            });
+
+        if (archivoError) {
+            console.error('Error al registrar archivo de acta:', archivoError);
+            throw new Error('Error al registrar archivo de acta');
+        }
 
         // 8. Registrar acta en BD
         const { data: acta, error: actaError } = await supabase
@@ -120,7 +144,7 @@ class ActaService {
                 notaria,
                 resumen_hechos: resumenHechos,
                 consecuencias_declaradas: consecuencias.consecuencia,
-                archivo_acta_id: null, // TODO: vincular con archivo real
+                archivo_acta_id: archivoId,
                 hash_acta: hashActa,
                 tst_token: tst.token,
                 tst_fecha: tst.fecha.toISOString(),
@@ -153,7 +177,7 @@ class ActaService {
 
         return {
             actaId: acta.id,
-            pdfPath,
+            pdfPath: storageResult.publicUrl,
         };
     }
 
