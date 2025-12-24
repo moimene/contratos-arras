@@ -290,10 +290,21 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
         }
 
         // Usar Supabase Storage para obtener URL firmada
-        const storagePath = archivo.nombre_almacenado || archivo.ruta;
+        let storagePath = archivo.nombre_almacenado || archivo.ruta;
 
         if (!storagePath) {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
+        }
+
+        // Remove bucket prefix from path if present (e.g., 'documentos/exp01/...' -> 'exp01/...')
+        // This is necessary because seed data includes the bucket name in the path,
+        // but when calling storage.from('documentos').createSignedUrl(), the bucket is already specified.
+        const bucketPrefixes = ['documentos/', 'contratos-pdf/', 'justificantes/'];
+        for (const prefix of bucketPrefixes) {
+            if (storagePath.startsWith(prefix)) {
+                storagePath = storagePath.substring(prefix.length);
+                break;
+            }
         }
 
         // Generar URL firmada válida por 1 hora
@@ -360,10 +371,19 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
         }
 
         // Usar Supabase Storage para obtener URL firmada
-        const storagePath = archivo.nombre_almacenado || archivo.ruta;
+        let storagePath = archivo.nombre_almacenado || archivo.ruta;
 
         if (!storagePath) {
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
+        }
+
+        // Remove bucket prefix from path if present
+        const bucketPrefixes = ['documentos/', 'contratos-pdf/', 'justificantes/'];
+        for (const prefix of bucketPrefixes) {
+            if (storagePath.startsWith(prefix)) {
+                storagePath = storagePath.substring(prefix.length);
+                break;
+            }
         }
 
         // Generar URL firmada válida por 1 hora
