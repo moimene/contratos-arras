@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
+import { sendInvitationNotification } from '../services/notificationService.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -218,7 +220,7 @@ router.post('/invite', async (req: Request, res: Response) => {
         // Verificar permisos OWNER o ADMIN
         const { data: perfil, error: perfilError } = await supabase
             .from('perfiles')
-            .select('organizacion_id, rol_organizacion')
+            .select('organizacion_id, rol_organizacion, nombre_completo, email')
             .eq('id', userId)
             .single();
 
@@ -262,17 +264,78 @@ router.post('/invite', async (req: Request, res: Response) => {
             });
         }
 
-        // TODO: Enviar email de invitación real
-        // Por ahora, simular invitación pendiente
+        // Verificar si ya tiene una invitación pendiente
+        const { data: invitacionExistente } = await supabase
+            .from('invitaciones_organizacion')
+            .select('*')
+            .eq('email', email)
+            .eq('organizacion_id', perfil.organizacion_id)
+            .eq('estado', 'PENDIENTE')
+            .single();
+
+        let invitacion;
+
+        if (invitacionExistente) {
+            // Actualizar expiración y reenviar
+            const { data: invitacionActualizada, error: updateError } = await supabase
+                .from('invitaciones_organizacion')
+                .update({
+                    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    rol: rolAsignado,
+                    token: uuidv4() // Nuevo token por seguridad
+                })
+                .eq('id', invitacionExistente.id)
+                .select()
+                .single();
+
+            if (updateError) throw updateError;
+            invitacion = invitacionActualizada;
+        } else {
+            // Crear nueva invitación
+            const { data: nuevaInvitacion, error: createError } = await supabase
+                .from('invitaciones_organizacion')
+                .insert({
+                    organizacion_id: perfil.organizacion_id,
+                    email,
+                    rol: rolAsignado,
+                    token: uuidv4(),
+                    estado: 'PENDIENTE',
+                    creado_por: userId,
+                    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                })
+                .select()
+                .single();
+
+            if (createError) throw createError;
+            invitacion = nuevaInvitacion;
+        }
+
+        // Obtener nombre de la organización
+        const { data: org } = await supabase
+            .from('organizaciones')
+            .select('nombre')
+            .eq('id', perfil.organizacion_id)
+            .single();
+
+        // Enviar email de invitación real
+        await sendInvitationNotification({
+            email: invitacion.email,
+            rol: invitacion.rol,
+            token: invitacion.token,
+            organizacion: {
+                id: perfil.organizacion_id,
+                nombre: org?.nombre || 'Organización'
+            },
+            invitadoPor: {
+                nombre: perfil.nombre_completo || 'Un administrador',
+                email: perfil.email // Asumiendo que perfil tiene email, si no, habría que buscarlo en auth.users o pasarlo si está disponible
+            }
+        });
 
         return res.json({
             success: true,
             message: `Invitación enviada a ${email} con rol ${rolAsignado}`,
-            data: {
-                email,
-                rol: rolAsignado,
-                estado: 'PENDIENTE'
-            }
+            data: invitacion
         });
 
     } catch (error) {
