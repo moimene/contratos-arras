@@ -7,6 +7,8 @@
 
 import { supabase } from '../config/supabase.js';
 import { qtspService, calcularHash } from './qtspService.js';
+import { generateActaPDF } from './pdfService.js';
+import * as storageService from './storageService.js';
 
 // ================================================
 // TIPOS
@@ -104,10 +106,58 @@ class ActaService {
         // 6. Obtener TST del acta completa
         const tst = await qtspService.obtenerSelloTiempo(hashActa);
 
-        // 7. TODO: Generar PDF (simplificado por ahora)
-        const pdfPath = `/actas/acta_${contratoId}_${Date.now()}.pdf`;
+        // 7. Generar PDF y subirlo a Storage
+        const pdfBuffer = await generateActaPDF({
+            contrato,
+            parteNoCompareciente,
+            fechaHoraCita,
+            notaria,
+            resumenHechos,
+            consecuencias,
+            hashActa,
+            tst: {
+                token: tst.token,
+                fecha: tst.fecha,
+                proveedor: tst.proveedor
+            }
+        });
 
-        // 8. Registrar acta en BD
+        // Guardar en Storage
+        const nombreArchivo = `acta_no_comparecencia_${contratoId}_${Date.now()}.pdf`;
+        const fileInfo = await storageService.guardarArchivo(
+            pdfBuffer,
+            nombreArchivo,
+            contratoId,
+            'CIERRE' // Carpeta de cierre
+        );
+
+        // Registrar en tabla archivos
+        const { data: archivo, error: archivoError } = await supabase
+            .from('archivos')
+            .insert({
+                contrato_id: contratoId,
+                nombre_original: nombreArchivo,
+                nombre_almacenado: fileInfo.path,
+                tipo_mime: 'application/pdf',
+                ruta_local: fileInfo.path, // Usamos path de storage como referencia
+                tipo_documento: 'ACTA_NO_COMPARECENCIA',
+                categoria: 'CIERRE',
+                subido_por_rol: 'SISTEMA',
+                tamano: fileInfo.size,
+                hash_sha256: fileInfo.hash,
+                version: 1,
+                es_vigente: true,
+                titulo: 'Acta de No Comparecencia'
+            })
+            .select('id')
+            .single();
+
+        if (archivoError || !archivo) {
+            console.error('Error registrando archivo de acta:', archivoError);
+            throw new Error('Error al registrar archivo del acta');
+        }
+
+        // 8. Registrar acta en BD vinculando el archivo
         const { data: acta, error: actaError } = await supabase
             .from('actas_no_comparecencia')
             .insert({
@@ -119,7 +169,7 @@ class ActaService {
                 notaria,
                 resumen_hechos: resumenHechos,
                 consecuencias_declaradas: consecuencias.consecuencia,
-                archivo_acta_id: null, // TODO: vincular con archivo real
+                archivo_acta_id: archivo.id,
                 hash_acta: hashActa,
                 tst_token: tst.token,
                 tst_fecha: tst.fecha.toISOString(),
@@ -152,7 +202,7 @@ class ActaService {
 
         return {
             actaId: acta.id,
-            pdfPath,
+            pdfPath: fileInfo.publicUrl,
         };
     }
 

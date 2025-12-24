@@ -920,3 +920,198 @@ function formatChannel(canal: string): string {
 function formatKey(key: string): string {
     return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
 }
+
+// ============================================
+// ACTAS DE NO COMPARECENCIA
+// ============================================
+
+export interface ActaPdfData {
+    contrato: any;
+    parteNoCompareciente: any;
+    fechaHoraCita: Date;
+    notaria: string;
+    resumenHechos: string;
+    consecuencias: {
+        tipoArras: string;
+        consecuencia: string;
+    };
+    hashActa: string;
+    tst?: {
+        token: string;
+        fecha: Date;
+        proveedor: string;
+    };
+}
+
+/**
+ * Genera el PDF del Acta de No Comparecencia
+ */
+export async function generateActaPDF(data: ActaPdfData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({
+                size: 'A4',
+                margins: { top: 60, bottom: 60, left: 72, right: 72 },
+            });
+
+            const chunks: Buffer[] = [];
+            doc.on('data', (chunk) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+
+            const {
+                contrato,
+                parteNoCompareciente,
+                fechaHoraCita,
+                notaria,
+                resumenHechos,
+                consecuencias,
+                hashActa,
+                tst
+            } = data;
+
+            // Nombre completo de la parte no compareciente
+            const nombreCompleto = `${parteNoCompareciente.parte.nombre} ${parteNoCompareciente.parte.apellidos || ''}`.trim();
+
+            // ============================================
+            // HEADER
+            // ============================================
+            doc.font('Times-Bold').fontSize(18).text('ACTA DE NO COMPARECENCIA', { align: 'center' });
+            doc.moveDown(2);
+
+            // ============================================
+            // DATOS GENERALES
+            // ============================================
+            doc.font('Times-Roman').fontSize(12);
+
+            doc.font('Times-Bold').text('Expediente: ', { continued: true })
+               .font('Times-Roman').text(contrato.numero_expediente || contrato.id);
+
+            doc.font('Times-Bold').text('Fecha y hora de cita: ', { continued: true })
+               .font('Times-Roman').text(fechaHoraCita.toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' }));
+
+            doc.font('Times-Bold').text('Notaría: ', { continued: true })
+               .font('Times-Roman').text(notaria);
+
+            doc.moveDown();
+
+            // ============================================
+            // I. HECHOS
+            // ============================================
+            doc.font('Times-Bold').fontSize(14).text('I. HECHOS');
+            doc.moveDown(0.5);
+            doc.rect(72, doc.y, 450, 1).stroke(); // Línea separadora
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman').fontSize(11).text(resumenHechos, { align: 'justify' });
+            doc.moveDown();
+
+            doc.text('En la fecha y hora indicadas, compareció/comparecieron la(s) parte(s) convocada(s), con excepción de:', { align: 'justify' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Bold').text(nombreCompleto, { align: 'center' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman').text('En calidad de: ', { continued: true })
+               .font('Times-Bold').text(parteNoCompareciente.rol_en_contrato);
+
+            doc.font('Times-Roman').text(`${parteNoCompareciente.parte.tipo_documento}: ${parteNoCompareciente.parte.numero_documento}`);
+            doc.moveDown(1.5);
+
+            // ============================================
+            // II. OBJETO DEL CONTRATO
+            // ============================================
+            doc.font('Times-Bold').fontSize(14).text('II. OBJETO DEL CONTRATO');
+            doc.moveDown(0.5);
+            doc.rect(72, doc.y, 450, 1).stroke();
+            doc.moveDown(0.5);
+
+            const inmueble = contrato.inmueble || {};
+            doc.font('Times-Roman').fontSize(11)
+               .text(`La comparecencia tenía por objeto la elevación a escritura pública del contrato privado de arras de fecha ${new Date(contrato.created_at).toLocaleDateString('es-ES')}, sobre el inmueble sito en:`, { align: 'justify' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Bold').text(`${inmueble.direccion_completa || ''}, ${inmueble.ciudad || ''}`, { align: 'center' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman').text('Precio total: ', { continued: true })
+               .text(`${(contrato.precio_total || 0).toLocaleString('es-ES')} ${contrato.moneda || 'EUR'}`);
+
+            doc.text('Arras entregadas: ', { continued: true })
+               .text(`${(contrato.importe_arras || 0).toLocaleString('es-ES')} ${contrato.moneda || 'EUR'} (${contrato.tipo_arras})`);
+
+            doc.moveDown(1.5);
+
+            // ============================================
+            // III. CONSECUENCIAS
+            // ============================================
+            doc.font('Times-Bold').fontSize(14).text('III. CONSECUENCIAS DE LA NO COMPARECENCIA');
+            doc.moveDown(0.5);
+            doc.rect(72, doc.y, 450, 1).stroke();
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman').fontSize(11)
+               .text('En virtud del artículo 1454 del Código Civil y la naturaleza ', { continued: true })
+               .font('Times-Bold').text(consecuencias.tipoArras, { continued: true })
+               .font('Times-Roman').text(' de las arras pactadas:', { align: 'justify' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman').text(consecuencias.consecuencia, { align: 'justify' });
+            doc.moveDown(1.5);
+
+            // ============================================
+            // IV. NOTIFICACIÓN
+            // ============================================
+            doc.font('Times-Bold').fontSize(14).text('IV. NOTIFICACIÓN Y PLAZO DE ALEGACIONES');
+            doc.moveDown(0.5);
+            doc.rect(72, doc.y, 450, 1).stroke();
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman').fontSize(11)
+               .text('La presente acta será notificada al obligado no compareciente conforme al artículo 48 LEC.', { align: 'justify' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Bold')
+               .text('Se concede un plazo de CUARENTA Y OCHO (48) HORAS desde la notificación para formular alegaciones, someterse o manifestar conformidad con las consecuencias declaradas.', { align: 'justify' });
+            doc.moveDown(0.5);
+
+            doc.font('Times-Roman')
+               .text('Transcurrido dicho plazo sin respuesta, se entenderá definitiva la presente acta.', { align: 'justify' });
+
+            doc.moveDown(2);
+
+            // ============================================
+            // SELLO Y HASH (Box)
+            // ============================================
+            const startY = doc.y;
+            doc.rect(72, startY, 450, 100).stroke();
+
+            doc.fontSize(10).text('Hash SHA-256 del acta:', 82, startY + 10);
+            doc.font('Courier').fontSize(8).text(hashActa, 82, startY + 25, { width: 430, lineBreak: true });
+
+            doc.font('Times-Bold').fontSize(10).text('Sello de Tiempo Cualificado (TST):', 82, startY + 50);
+            if (tst) {
+                doc.font('Times-Roman').text(`Proveedor: ${tst.proveedor || 'N/A'}`, 82, startY + 65);
+                doc.text(`Fecha: ${tst.fecha ? tst.fecha.toISOString() : 'N/A'}`, 82, startY + 80);
+            } else {
+                doc.font('Times-Roman').text('Pendiente de sellado', 82, startY + 65);
+            }
+
+            // ============================================
+            // FIRMA
+            // ============================================
+            doc.y = startY + 120;
+
+            doc.font('Times-Roman').fontSize(11)
+               .text(`En ${inmueble.ciudad || 'la ciudad'}, a ${new Date().toLocaleDateString('es-ES', { dateStyle: 'long' })}`, { align: 'right' });
+
+            doc.moveDown(3);
+            doc.text('_________________________', { align: 'right' });
+            doc.fontSize(9).text('Sistema LegalOps - Chron-Flare', { align: 'right' });
+
+            doc.end();
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
