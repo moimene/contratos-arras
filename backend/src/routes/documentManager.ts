@@ -278,6 +278,7 @@ router.get('/archivos/:id/versiones', async (req: Request, res: Response) => {
 router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        console.log(`[descargar] Request for archivo id=${id}`);
 
         const { data: archivo, error } = await supabase
             .from('archivos')
@@ -286,13 +287,16 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
             .single();
 
         if (error || !archivo) {
+            console.log(`[descargar] DB query failed: error=${error?.message}, archivo=${JSON.stringify(archivo)}`);
             return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
         }
 
         // Usar Supabase Storage para obtener URL firmada
         let storagePath = archivo.nombre_almacenado || archivo.ruta;
+        console.log(`[descargar] Original storagePath=${storagePath}`);
 
         if (!storagePath) {
+            console.log(`[descargar] No storage path found`);
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
         }
 
@@ -303,19 +307,23 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
         for (const prefix of bucketPrefixes) {
             if (storagePath.startsWith(prefix)) {
                 storagePath = storagePath.substring(prefix.length);
+                console.log(`[descargar] Stripped prefix ${prefix}, new storagePath=${storagePath}`);
                 break;
             }
         }
 
         // Generar URL firmada válida por 1 hora
+        console.log(`[descargar] Requesting signed URL for path=${storagePath}`);
         const { data: signedData, error: signError } = await supabase.storage
             .from('documentos')
             .createSignedUrl(storagePath, 3600);
 
         if (signError || !signedData?.signedUrl) {
-            console.error('Error generando URL firmada:', signError);
+            console.error('[descargar] Error generando URL firmada:', signError);
             return res.status(500).json({ success: false, error: 'Error al generar URL de descarga' });
         }
+
+        console.log(`[descargar] Success! Redirecting to signed URL`);
 
         // Registrar evento de acceso
         try {
