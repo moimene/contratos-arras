@@ -168,7 +168,7 @@ async function getDestinatariosConContacto(
     }
 
     const { data: partes } = await supabase
-        .from('partes_contrato')
+        .from('contratos_partes')
         .select(`
             rol_en_contrato,
             parte:partes(
