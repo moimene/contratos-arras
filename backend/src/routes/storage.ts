@@ -81,6 +81,45 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
 });
 
 /**
+ * GET /api/storage/debug
+ * Debug endpoint to diagnose Supabase Storage access
+ */
+router.get('/debug', async (req: Request, res: Response) => {
+    try {
+        const { supabase } = await import('../config/supabase.js');
+        const prefix = req.query.prefix as string || '';
+
+        // List buckets
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+
+        // List files in documentos bucket
+        const { data: files, error: filesError } = await supabase.storage
+            .from('documentos')
+            .list(prefix, { limit: 50 });
+
+        // Try to create a signed URL for a test path
+        const testPath = req.query.path as string || 'documentos/exp15/Nota_Simple.pdf';
+        const { data: signedData, error: signError } = await supabase.storage
+            .from('documentos')
+            .createSignedUrl(testPath, 3600);
+
+        res.json({
+            success: true,
+            buckets: buckets?.map(b => b.name) || [],
+            bucketsError: bucketsError?.message,
+            prefix,
+            files: files?.map(f => ({ name: f.name, id: f.id })) || [],
+            filesError: filesError?.message,
+            testPath,
+            signedUrl: signedData?.signedUrl ? 'GENERATED_OK' : null,
+            signError: signError?.message
+        });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * GET /api/storage/:path(*)
  * Descarga un archivo de Supabase Storage
  */
