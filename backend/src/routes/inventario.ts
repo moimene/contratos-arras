@@ -7,6 +7,7 @@
 
 import { Router, Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
+import { resolveAuthContext } from '../middleware/authorization.js';
 import { registerEvent } from '../services/eventService.js';
 
 const router = Router();
@@ -234,15 +235,25 @@ router.patch('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const userId = req.headers['x-user-id'] as string;
+        const userEmail = req.headers['x-user-email'] as string;
 
-        // TODO: Verificar que el usuario sea ADMIN
-
-        // Obtener ítem para logging
+        // Obtener ítem para logging y verificación de contrato
         const { data: item } = await supabase
             .from('inventario_expediente')
             .select('*')
             .eq('id', id)
             .single();
+
+        if (!item) {
+            return res.status(404).json({ success: false, error: 'Ítem no encontrado' });
+        }
+
+        // Verificar que el usuario sea ADMIN
+        const authContext = await resolveAuthContext(userId, userEmail, item.contrato_id);
+        if (authContext.tipoRol !== 'ADMIN') {
+            return res.status(403).json({ success: false, error: 'Solo el administrador puede eliminar ítems del inventario' });
+        }
 
         const { error } = await supabase
             .from('inventario_expediente')
