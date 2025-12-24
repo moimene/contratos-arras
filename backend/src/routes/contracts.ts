@@ -89,7 +89,8 @@ router.post('/init', upload.single('pdf'), async (req: Request, res: Response) =
         }
 
         // Crear expediente
-        const resultado = await crearContratoExpediente(datosWizard, borradorPdfPath);
+        const creatorId = req.headers['x-user-id'] as string | undefined;
+        const resultado = await crearContratoExpediente(datosWizard, borradorPdfPath, creatorId);
 
         // URL del dashboard
         const dashboardUrl = `/dashboard/contrato/${resultado.contratoId}`;

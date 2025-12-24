@@ -93,7 +93,8 @@ export interface DatosWizard {
  */
 export async function crearContratoExpediente(
     datosWizard: DatosWizard,
-    borradorPdfPath?: string
+    borradorPdfPath?: string,
+    creatorUserId?: string
 ): Promise<{
     contratoId: string;
     numeroExpediente: string;
@@ -235,6 +236,44 @@ export async function crearContratoExpediente(
 
     // 8. Generar inventario documental base (documentos obligatorios)
     await generarInventarioBase(contratoId, datosWizard);
+
+    // 8.5. Añadir al creador como miembro del expediente (si está autenticado)
+    if (creatorUserId) {
+        try {
+            let rolUsuario = 'TERCERO'; // Por defecto es un asesor/tercero
+
+            // Obtener email del creador para verificar si es parte (Comprador/Vendedor)
+            const { data: perfil } = await supabase
+                .from('perfiles')
+                .select('email')
+                .eq('id', creatorUserId)
+                .single();
+
+            if (perfil?.email) {
+                const email = perfil.email.toLowerCase();
+                const isBuyer = datosWizard.compradores.some(c => c.email && c.email.toLowerCase() === email);
+                const isSeller = datosWizard.vendedores.some(v => v.email && v.email.toLowerCase() === email);
+
+                if (isBuyer) rolUsuario = 'COMPRADOR';
+                else if (isSeller) rolUsuario = 'VENDEDOR';
+            }
+
+            await supabase
+                .from('miembros_expediente')
+                .insert({
+                    usuario_id: creatorUserId,
+                    contrato_id: contratoId,
+                    tipo_rol_usuario: rolUsuario,
+                    estado_acceso: 'ACTIVO',
+                    creado_por_usuario_id: creatorUserId
+                });
+
+            console.log(`Creator ${creatorUserId} added as ${rolUsuario} to contract ${contratoId}`);
+        } catch (memberError) {
+            console.warn('Error adding creator as member:', memberError);
+            // Don't fail the whole creation for this
+        }
+    }
 
     // 9. Crear cadena de eventos forenses completa
     // EVENTO 1: ACEPTACIÓN DE TÉRMINOS POR COMPRADOR (primer evento de la cadena)
