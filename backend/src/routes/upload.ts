@@ -11,6 +11,7 @@ import { randomUUID } from 'crypto';
 import { supabase } from '../config/supabase.js';
 import { registerEvent } from '../services/eventService.js';
 import { guardarArchivo, leerArchivo, eliminarArchivo, obtenerUrlDescarga, calcularHashArchivo } from '../services/storageService.js';
+import { requirePermission } from '../middleware/authorization.js';
 
 const router = Router();
 
@@ -53,7 +54,7 @@ const upload = multer({
  * - inventario_item_id: ID del ítem de inventario (opcional)
  * - tipo: tipo de documento (ej: DNI_VENDEDOR, NOTA_SIMPLE)
  */
-router.post('/', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', requirePermission('canUploadDocs'), upload.single('file'), async (req: Request, res: Response) => {
     try {
         if (!req.file) {
             return res.status(400).json({
