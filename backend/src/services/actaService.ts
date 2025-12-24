@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../config/supabase.js';
+import { triggerCommunicationWebhook } from './notificationService.js';
 import { qtspService, calcularHash } from './qtspService.js';
 
 // ================================================
@@ -419,11 +420,69 @@ class ActaService {
         actaId: string,
         parteId: string
     ): Promise<void> {
-        // TODO: Integrar con sistema de email/SMS
-        console.log(`Notificación programada para acta ${actaId} a parte ${parteId}`);
+        console.log(`Programando notificación para acta ${actaId} a parte ${parteId}`);
 
-        // Por ahora, solo registramos que debe enviarse
-        // En producción, esto dispararía un email/SMS real
+        try {
+            // 1. Obtener el rol de la parte destinataria
+            const { data: parteContrato, error: parteError } = await supabase
+                .from('contratos_partes')
+                .select('rol_en_contrato')
+                .eq('contrato_id', contratoId)
+                .eq('parte_id', parteId)
+                .single();
+
+            if (parteError || !parteContrato) {
+                console.error('Error al obtener rol de la parte:', parteError);
+                throw new Error('No se pudo identificar el rol de la parte para la notificación');
+            }
+
+            // 2. Crear registro de comunicación
+            const { data: comunicacion, error: commError } = await supabase
+                .from('comunicaciones')
+                .insert({
+                    contrato_id: contratoId,
+                    tipo_comunicacion: 'NOTIFICACION_ACTA_NO_COMPARECENCIA',
+                    canal: 'EMAIL', // Prioridad Email, pero el sistema determina canales
+                    asunto: 'IMPORTANTE: Acta de No Comparecencia y Apertura de Plazo de Alegaciones',
+                    contenido: `Se le notifica que se ha generado un Acta de No Comparecencia referente al contrato ${contratoId}. Dispone de 48 horas para realizar alegaciones.`,
+                    remitente_rol: 'SISTEMA',
+                    destinatarios_roles: [parteContrato.rol_en_contrato],
+                    metadatos: {
+                        actaId,
+                        urgente: true,
+                        accionRequerida: 'REVISAR_ACTA'
+                    }
+                })
+                .select()
+                .single();
+
+            if (commError) {
+                console.error('Error al crear comunicación:', commError);
+                throw new Error('Error al registrar la comunicación');
+            }
+
+            // 3. Disparar webhook de notificación (Email/SMS via n8n)
+            const webhookResult = await triggerCommunicationWebhook(
+                comunicacion.id,
+                'COMUNICACION_CREADA'
+            );
+
+            if (!webhookResult.success) {
+                console.warn('Alerta: El webhook de notificación falló, pero el proceso continúa.', webhookResult.error);
+                // No lanzamos error para no abortar el proceso principal, pero logueamos
+            }
+
+            // 4. Registrar oficialmente que la notificación ha sido enviada (Legal/Blockchain)
+            await this.enviarNotificacionActa(actaId);
+
+            console.log(`Notificación programada y enviada correctamente para acta ${actaId}`);
+
+        } catch (error) {
+            console.error('Error en programarNotificacion:', error);
+            // Dependiendo de la criticidad, podríamos lanzar el error o solo loguearlo
+            // Dado que inicia un plazo legal, es crítico.
+            throw error;
+        }
     }
 }
 
