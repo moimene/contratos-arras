@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 const OKTA_TOKEN_URL = process.env.QTSP_OKTA_URL || 'https://legalappfactory.okta.com/oauth2/aus653dgdgTFL2mhw417/v1/token';
 const API_BASE_URL = process.env.QTSP_API_URL || 'https://api.pre.gcloudfactory.com/digital-trust';
@@ -44,6 +44,7 @@ async function getAccessToken(): Promise<string> {
         return cachedToken.access_token;
     }
 
+    console.log('QTSP: Refreshing access token...');
     const { clientId, clientSecret } = getCredentials();
 
     // Construct URL with query parameters as per provided curl example and docs
@@ -58,14 +59,14 @@ async function getAccessToken(): Promise<string> {
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',
-            // Some Okta configurations might require Content-Length: 0 for empty body,
-            // but fetch usually handles it.
         }
     });
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Failed to get access token: ${response.status} ${text}`);
+        const errorMsg = `Failed to get access token: ${response.status} ${text}`;
+        console.error('QTSP Auth Error:', errorMsg);
+        throw new Error(errorMsg);
     }
 
     const data = await response.json() as any;
@@ -73,6 +74,7 @@ async function getAccessToken(): Promise<string> {
         access_token: data.access_token,
         expires_at: Date.now() + (data.expires_in * 1000)
     };
+    console.log('QTSP: Access token refreshed successfully.');
 
     return cachedToken.access_token;
 }
@@ -94,8 +96,10 @@ async function ensureSystemResources(): Promise<{ caseFileId: string; groupId: s
 export async function createTimestampEvidence(hash: string): Promise<{ token: string; timestamp: string }> {
     const { caseFileId, groupId } = await ensureSystemResources();
     const token = await getAccessToken();
-    const evidenceId = uuidv4();
+    const evidenceId = crypto.randomUUID();
     const capturedAt = new Date().toISOString();
+
+    console.log(`QTSP: Creating timestamp evidence [${evidenceId}] for hash ${hash.substring(0, 8)}...`);
 
     const body = {
         id: evidenceId,
@@ -123,7 +127,9 @@ export async function createTimestampEvidence(hash: string): Promise<{ token: st
 
     if (!createRes.ok) {
         const errText = await createRes.text();
-        throw new Error(`Failed to create Evidence: ${createRes.status} ${errText}`);
+        const errorMsg = `Failed to create Evidence: ${createRes.status} ${errText}`;
+        console.error('QTSP Evidence Creation Error:', errorMsg);
+        throw new Error(errorMsg);
     }
 
     // Poll for status
@@ -148,6 +154,7 @@ export async function createTimestampEvidence(hash: string): Promise<{ token: st
                 const keys = Object.keys(info.timestamps.tspTimestamps);
                 if (keys.length > 0) {
                     const firstTsp = info.timestamps.tspTimestamps[keys[0]];
+                    console.log(`QTSP: Timestamp obtained for evidence [${evidenceId}]`);
                     return {
                         token: firstTsp.token,
                         timestamp: firstTsp.timestampedAt
@@ -155,11 +162,13 @@ export async function createTimestampEvidence(hash: string): Promise<{ token: st
                 }
             }
         } else if (info.status.status === 'ERROR') {
+             console.error(`QTSP Evidence [${evidenceId}] failed status: ${JSON.stringify(info.status)}`);
              throw new Error(`Evidence processing failed: ${JSON.stringify(info.status)}`);
         }
 
         attempts++;
     }
 
+    console.error(`QTSP: Timeout waiting for timestamp for evidence [${evidenceId}]`);
     throw new Error('Timeout waiting for QTSP timestamp');
 }

@@ -904,3 +904,16 @@ El sistema cumple con:
 
 *Documentación actualizada: 2025-12-15*
 *Versión del sistema: 1.1.0*
+
+## Configuración de Variables de Entorno
+
+Para la integración con el servicio QTSP (Qualified Trust Service Provider), se requieren las siguientes variables de entorno en el archivo `.env` del backend o en la configuración del despliegue:
+
+| Variable | Descripción | Requerido | Valor por defecto (PRE) |
+|----------|-------------|-----------|-------------------------|
+| `QTSP_CLIENT_ID` | Client ID de Okta para autenticación | ✅ Sí | - |
+| `QTSP_CLIENT_SECRET` | Client Secret de Okta | ✅ Sí | - |
+| `QTSP_OKTA_URL` | URL del endpoint de token de Okta | ❌ No | `https://legalappfactory.okta.com/.../token` |
+| `QTSP_API_URL` | URL base de la API de Digital Trust | ❌ No | `https://api.pre.gcloudfactory.com/digital-trust` |
+| `QTSP_CASE_FILE_ID` | ID del Expediente "Sistema" para sellado | ✅ Sí | - |
+| `QTSP_GROUP_ID` | ID del Grupo de Evidencias "Sistema" | ✅ Sí | - |
