@@ -1,8 +1,7 @@
 /**
- * Cliente stub para QTSP EAD Trust / GoCertius
- * En desarrollo: simula emisión de sellos de tiempo
- * En producción: sustituir por cliente RFC 3161 real
+ * Cliente QTSP que integra con Digital Trust (Legal App Factory)
  */
+import { createTimestampEvidence } from './digitalTrustClient.js';
 
 export interface QTSPResponse {
     proveedor: 'EAD_TRUST';
@@ -25,12 +24,20 @@ export async function requestQualifiedTimestamp(
 ): Promise<QTSPResponse> {
     const mode = process.env.QTSP_MODE || 'stub';
 
-    if (mode === 'stub') {
-        return await stubTimestamp(hashSha256);
+    // Check if we have credentials to run in production mode
+    const hasCredentials = process.env.QTSP_CLIENT_ID && process.env.QTSP_CLIENT_SECRET;
+
+    if (mode === 'production' || hasCredentials) {
+         try {
+             return await productionTimestamp(hashSha256);
+         } catch (error) {
+             console.error("QTSP Production Error:", error);
+             // If credentials fail or are invalid, fallback to stub ONLY if not explicitly forced to production
+             if (mode === 'production') throw error;
+             return await stubTimestamp(hashSha256);
+         }
     } else {
-        // TODO: Implementar integración real con EAD Trust / GoCertius
-        // return await productionTimestamp(hashSha256);
-        throw new Error('Modo QTSP de producción no implementado aún');
+        return await stubTimestamp(hashSha256);
     }
 }
 
@@ -66,30 +73,20 @@ async function stubTimestamp(hashSha256: string): Promise<QTSPResponse> {
 }
 
 /**
- * Integración de producción con EAD Trust
- * Ejemplo de implementación con cliente RFC 3161
+ * Integración de producción con Digital Trust
  */
-/*
 async function productionTimestamp(hashSha256: string): Promise<QTSPResponse> {
-  // Importar cliente RFC 3161 (ej: node-rfc3161, node-forge)
-  // const tsaClient = new TsaClient({
-  //   tsaUrl: process.env.EAD_TRUST_TSA_URL,
-  //   hashAlgorithm: 'sha256',
-  //   certificatePath: './certs/ead-trust-ca.pem',
-  // });
+  const result = await createTimestampEvidence(hashSha256);
 
-  // const tstResponse = await tsaClient.timestamp(hashSha256);
-
-  // return {
-  //   proveedor: 'EAD_TRUST',
-  //   marca: 'GoCertius',
-  //   fechaSello: tstResponse.genTime,
-  //   rfc3161TstBase64: tstResponse.token.toString('base64'),
-  //   metadata: {
-  //     mode: 'PRODUCTION',
-  //     serialNumber: tstResponse.serialNumber,
-  //     tslUrl: 'https://sede.tsldl.gob.es/tsl-servicio-web/',
-  //   },
-  // };
+  return {
+    proveedor: 'EAD_TRUST',
+    marca: 'GoCertius',
+    fechaSello: result.timestamp,
+    rfc3161TstBase64: result.token,
+    metadata: {
+      mode: 'PRODUCTION',
+      serialNumber: '', // Not explicitly returned in simple view
+      tslUrl: 'https://sede.tsldl.gob.es/tsl-servicio-web/',
+    },
+  };
 }
-*/
