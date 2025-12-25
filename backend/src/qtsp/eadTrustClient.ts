@@ -27,7 +27,8 @@ export async function requestQualifiedTimestamp(
     // Check if we have credentials to run in production mode
     const hasCredentials = process.env.QTSP_CLIENT_ID && process.env.QTSP_CLIENT_SECRET;
 
-    if (mode === 'production' || hasCredentials) {
+    // Use production ONLY if mode is explicitly 'production' OR (credentials exist AND mode is NOT stub)
+    if (mode === 'production' || (hasCredentials && mode !== 'stub')) {
          try {
              return await productionTimestamp(hashSha256);
          } catch (error) {
