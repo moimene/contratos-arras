@@ -51,11 +51,27 @@ export const FormPersonaFisica: React.FC<FormPersonaFisicaProps> = ({
             <div className="form-row">
                 <div className="form-group">
                     <label>Nombre <span className="required">*</span></label>
-                    <input type="text" name="nombre" value={formData.nombre} onChange={onChange} required placeholder="Laura" />
+                    <input
+                        data-testid={`${formData.rol.toLowerCase()}-nombre`}
+                        type="text"
+                        name="nombre"
+                        value={formData.nombre}
+                        onChange={onChange}
+                        required
+                        placeholder="Laura"
+                    />
                 </div>
                 <div className="form-group">
                     <label>Apellidos <span className="required">*</span></label>
-                    <input type="text" name="apellidos" value={formData.apellidos} onChange={onChange} required placeholder="Pérez Gómez" />
+                    <input
+                        data-testid={`${formData.rol.toLowerCase()}-apellidos`}
+                        type="text"
+                        name="apellidos"
+                        value={formData.apellidos}
+                        onChange={onChange}
+                        required
+                        placeholder="Pérez Gómez"
+                    />
                 </div>
             </div>
 
@@ -70,14 +86,30 @@ export const FormPersonaFisica: React.FC<FormPersonaFisicaProps> = ({
                 </div>
                 <div className="form-group">
                     <label>Nº de documento <span className="required">*</span></label>
-                    <input type="text" name="numero_documento" value={formData.numero_documento} onChange={onChange} required placeholder="00000000X" />
+                    <input
+                        data-testid={`${formData.rol.toLowerCase()}-documento`}
+                        type="text"
+                        name="numero_documento"
+                        value={formData.numero_documento}
+                        onChange={onChange}
+                        required
+                        placeholder="00000000X"
+                    />
                 </div>
             </div>
 
             <div className="form-row">
                 <div className="form-group">
                     <label>Email <span className="required">*</span></label>
-                    <input type="email" name="email" value={formData.email} onChange={onChange} required placeholder="laura@example.com" />
+                    <input
+                        data-testid={`${formData.rol.toLowerCase()}-email`}
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={onChange}
+                        required
+                        placeholder="laura@example.com"
+                    />
                 </div>
                 <div className="form-group">
                     <label>Teléfono (recomendado)</label>
@@ -208,7 +240,12 @@ export const FormPersonaFisica: React.FC<FormPersonaFisicaProps> = ({
                 </div>
             </div>
 
-            <button type="button" onClick={onSubmit} className="btn btn-primary">
+            <button
+                type="button"
+                data-testid={`submit-${formData.rol.toLowerCase()}`}
+                onClick={onSubmit}
+                className="btn btn-primary"
+            >
                 {isEditing ? 'Actualizar' : 'Guardar'} {formData.rol.toLowerCase()}
             </button>
         </div>

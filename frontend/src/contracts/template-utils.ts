@@ -459,6 +459,14 @@ export const generateTerminosHTML = (data: ContractData): string => {
     
     <h4>${ICADE.CLAUSULA_10.titulo}</h4>
     <p>${clausula10_texto}</p>
+    ${contrato.pactosAdicionales && contrato.pactosAdicionales.length > 0 ? `
+    <h4>7. Pactos Adicionales</h4>
+    ${contrato.pactosAdicionales.map((pacto: { titulo: string; contenido: string }, i: number) => `
+        <p class="clausula-num">7.${i + 1} ${pacto.titulo}</p>
+        <p>${pacto.contenido}</p>
+    `).join('')}
+    ` : ''}
+
   </section>
   `;
 };

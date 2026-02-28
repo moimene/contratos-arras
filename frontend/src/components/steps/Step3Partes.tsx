@@ -391,7 +391,12 @@ export const Step3Partes: React.FC = () => {
                     <div className="form-section">
                         <div className="partes-header">
                             <h3>1️⃣ Compradores</h3>
-                            <button type="button" onClick={() => { setShowCompradorForm(!showCompradorForm); if (!showCompradorForm) resetCompradorForms(); }} className="btn btn-secondary">
+                            <button
+                                type="button"
+                                data-testid="add-comprador"
+                                onClick={() => { setShowCompradorForm(!showCompradorForm); if (!showCompradorForm) resetCompradorForms(); }}
+                                className="btn btn-secondary"
+                            >
                                 {showCompradorForm ? 'Cancelar' : '+ Añadir comprador'}
                             </button>
                         </div>
@@ -437,7 +442,12 @@ export const Step3Partes: React.FC = () => {
                     <div className="form-section">
                         <div className="partes-header">
                             <h3>2️⃣ Vendedores</h3>
-                            <button type="button" onClick={() => { setShowVendedorForm(!showVendedorForm); if (!showVendedorForm) resetVendedorForms(); }} className="btn btn-secondary">
+                            <button
+                                type="button"
+                                data-testid="add-vendedor"
+                                onClick={() => { setShowVendedorForm(!showVendedorForm); if (!showVendedorForm) resetVendedorForms(); }}
+                                className="btn btn-secondary"
+                            >
                                 {showVendedorForm ? 'Cancelar' : '+ Añadir vendedor'}
                             </button>
                         </div>
@@ -549,7 +559,7 @@ export const Step3Partes: React.FC = () => {
                         <button type="button" onClick={() => setCurrentStep(2)} className="btn btn-secondary">
                             ← Atrás
                         </button>
-                        <button type="submit" className="btn btn-primary">
+                        <button type="submit" className="btn btn-primary" data-testid="step3-submit">
                             Continuar →
                         </button>
                     </div>

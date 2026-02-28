@@ -55,7 +55,14 @@ export const Step2Acuerdo: React.FC = () => {
         retencionesActiva: contrato.retenciones?.activa || false,
         retencionesImporte: contrato.retenciones?.importe || 0,
         retencionesConcepto: contrato.retenciones?.concepto || '',
+
+
+        // 8. PACTOS ADICIONALES
+        pactosAdicionales: contrato.pactosAdicionales || [],
     });
+
+    // Estado para nuevo pacto
+    const [newPacto, setNewPacto] = useState({ titulo: '', contenido: '' });
 
     const [porcentajeArras, setPorcentajeArras] = useState(0);
     const [warnings, setWarnings] = useState<string[]>([]);
@@ -186,10 +193,27 @@ export const Step2Acuerdo: React.FC = () => {
         setShowModoEstandarModal(false);
     };
 
-    // Cancelar cambio y mantener modo estándar
     const cancelarCambio = () => {
         setPendingChange(null);
         setShowModoEstandarModal(false);
+    };
+
+    // Manejadores para pactos adicionales
+    const handleAddPacto = () => {
+        if (!newPacto.titulo.trim() || !newPacto.contenido.trim()) return;
+
+        setFormData(prev => ({
+            ...prev,
+            pactosAdicionales: [...prev.pactosAdicionales, { ...newPacto }]
+        }));
+        setNewPacto({ titulo: '', contenido: '' });
+    };
+
+    const handleRemovePacto = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            pactosAdicionales: prev.pactosAdicionales.filter((_, i) => i !== index)
+        }));
     };
 
     const getTipoArrasExplicacion = () => {
@@ -239,12 +263,14 @@ export const Step2Acuerdo: React.FC = () => {
                 activa: true,
                 importe: formData.retencionesImporte,
                 concepto: formData.retencionesConcepto
-            } : undefined
+            } : undefined,
+            pactosAdicionales: formData.pactosAdicionales
         };
 
         updateContrato(contratoData);
         setCurrentStep(3);
     };
+
 
     const getPreviewText = () => {
         const precio = formData.precio_total.toLocaleString('es-ES');
@@ -314,7 +340,7 @@ export const Step2Acuerdo: React.FC = () => {
 
                 <form onSubmit={handleSubmit} className="step-form">
                     {/* 1. TIPO DE ARRAS */}
-                    <div className="form-section">
+                    <div className="form-section" data-testid="step2-condiciones">
                         <h3>1️⃣ Naturaleza de las Arras</h3>
 
                         <div className="form-group">
@@ -353,6 +379,7 @@ export const Step2Acuerdo: React.FC = () => {
                                     Precio total de venta (€) <span className="required">*</span>
                                 </label>
                                 <input
+                                    data-testid="acuerdo-precio"
                                     type="number"
                                     id="precio_total"
                                     name="precio_total"
@@ -370,6 +397,7 @@ export const Step2Acuerdo: React.FC = () => {
                                     Importe de las arras (€) <span className="required">*</span>
                                 </label>
                                 <input
+                                    data-testid="acuerdo-arras"
                                     type="number"
                                     id="importe_arras"
                                     name="importe_arras"
@@ -483,7 +511,7 @@ export const Step2Acuerdo: React.FC = () => {
                     </div>
 
                     {/* 4. ESCRITURA */}
-                    <div className="form-section">
+                    <div className="form-section" data-testid="step2-escritura">
                         <h3>4️⃣ Escritura de Compraventa</h3>
 
                         <div className="form-group">
@@ -491,6 +519,7 @@ export const Step2Acuerdo: React.FC = () => {
                                 Fecha límite para otorgar la escritura <span className="required">*</span>
                             </label>
                             <input
+                                data-testid="acuerdo-fecha-escritura"
                                 type="date"
                                 id="fecha_limite_firma_escritura"
                                 name="fecha_limite_firma_escritura"
@@ -609,6 +638,65 @@ export const Step2Acuerdo: React.FC = () => {
                                 placeholder="Añade aquí pactos específicos (p. ej., entrega de llaves, mobiliario incluido, estado de cargas)."
                             />
                             <small>{formData.observaciones.length} / 2000 caracteres</small>
+                        </div>
+                    </div>
+
+                    {/* 7. PACTOS ADICIONALES */}
+                    <div className="form-section">
+                        <h3>7️⃣ Pactos Adicionales</h3>
+                        <p className="section-subtitle">Añade cláusulas específicas con validez legal (ej. reparto de gastos extraordinarios, condiciones de entrega, etc.).</p>
+
+                        <div className="pactos-list">
+                            {formData.pactosAdicionales.map((pacto, index) => (
+                                <div key={index} className="pacto-item card-pacto">
+                                    <div className="pacto-header">
+                                        <strong>{pacto.titulo}</strong>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemovePacto(index)}
+                                            className="btn-icon delete"
+                                            title="Eliminar pacto"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                    <p>{pacto.contenido}</p>
+                                </div>
+                            ))}
+
+                            {formData.pactosAdicionales.length === 0 && (
+                                <p className="text-muted">No hay pactos adicionales.</p>
+                            )}
+                        </div>
+
+                        <div className="add-pacto-form mt-4">
+                            <h4>Añadir nuevo pacto</h4>
+                            <div className="form-group">
+                                <label>Título de la cláusula</label>
+                                <input
+                                    type="text"
+                                    value={newPacto.titulo}
+                                    onChange={(e) => setNewPacto(prev => ({ ...prev, titulo: e.target.value }))}
+                                    placeholder="Ej. Entrega de llaves anticipada"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Contenido</label>
+                                <textarea
+                                    value={newPacto.contenido}
+                                    onChange={(e) => setNewPacto(prev => ({ ...prev, contenido: e.target.value }))}
+                                    rows={3}
+                                    placeholder="Redacta el contenido de la cláusula..."
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleAddPacto}
+                                className="btn btn-secondary btn-sm"
+                                disabled={!newPacto.titulo.trim() || !newPacto.contenido.trim()}
+                            >
+                                + Añadir Cláusula
+                            </button>
                         </div>
                     </div>
 
@@ -822,7 +910,7 @@ export const Step2Acuerdo: React.FC = () => {
                         <button type="button" onClick={() => setCurrentStep(1)} className="btn btn-secondary">
                             ← Atrás
                         </button>
-                        <button type="submit" className="btn btn-primary">
+                        <button type="submit" className="btn btn-primary" data-testid="step2-submit">
                             Continuar →
                         </button>
                     </div>
