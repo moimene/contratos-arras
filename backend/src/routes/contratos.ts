@@ -17,6 +17,7 @@ import {
     updateContratoSchema,
     linkParteSchema
 } from '../schemas/contratoParams.js';
+import { evaluateContract } from '../domain/DecisionEngine.js';
 
 const router = Router();
 
@@ -181,7 +182,9 @@ router.delete(
 
 /**
  * GET /api/contratos/:id/estado
- * Obtiene estado y requisitos del contrato
+ * Obtiene estado, requisitos y decisión del kernel
+ * 
+ * Blueprint v1.0: Integra Decision Engine (Shadow/Advisory/Authority)
  */
 router.get('/:id/estado', async (req: Request, res: Response) => {
     try {
@@ -204,8 +207,19 @@ router.get('/:id/estado', async (req: Request, res: Response) => {
                 full.firmasValidas.some((f: any) => f.parte_id === p.parte_id)
             );
 
+        // Blueprint v1.0: Evaluar kernel Decision Engine
+        let kernel = null;
+        try {
+            kernel = await evaluateContract(req.params.id);
+        } catch (kernelErr: any) {
+            console.warn('[Kernel Advisory] Error evaluating contract:', kernelErr.message);
+            // Shadow/Advisory: no falla el endpoint si el kernel falla
+        }
+
         res.json({
             estado: full.contrato.estado,
+            estado_macro: full.contrato.estado_macro ?? full.contrato.estado,
+            estado_micro: full.contrato.estado_micro,
             versionHash: full.contrato.version_hash,
             versionNumero: full.contrato.version_numero,
             requisitos: {
@@ -216,6 +230,12 @@ router.get('/:id/estado', async (req: Request, res: Response) => {
                 todosAceptaron: allAccepted,
                 todosFirmaron: allSigned,
             },
+            // Blueprint v1.0: Kernel evaluation result
+            kernel: kernel ? {
+                phase: kernel.phase,
+                decision: kernel.decision,
+                warnings: kernel.warnings,
+            } : null,
         });
     } catch (error: any) {
         console.error('Error obteniendo estado:', error);
@@ -224,3 +244,4 @@ router.get('/:id/estado', async (req: Request, res: Response) => {
 });
 
 export default router;
+

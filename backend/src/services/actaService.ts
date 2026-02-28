@@ -211,15 +211,24 @@ class ActaService {
                 notificacion_enviada_en: new Date().toISOString(),
                 notificacion_hash: hashNotificacion,
                 notificacion_tst: tst.token,
+                // Blueprint v1.0: Ventana 48h sellada
+                window_opens_at: new Date().toISOString(),
+                window_closes_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+                window_status: 'OPEN',
             })
             .eq('id', actaId);
 
-        // 5. Crear evento de notificación
+        // 5. Crear evento de notificación con ventana sellada
+        const windowOpensAt = new Date().toISOString();
+        const windowClosesAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
         const payload = {
             tipo: 'NOTIFICACION_NO_COMPARECENCIA_ENVIADA',
             actaId,
             parteId: acta.parte_no_compareciente_id,
-            ventanaCierre: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), // +48h
+            // Blueprint v1.0: Ventana sellada (determinista)
+            window_opens_at: windowOpensAt,
+            window_closes_at: windowClosesAt,
         };
 
         await supabase.from('eventos').insert({

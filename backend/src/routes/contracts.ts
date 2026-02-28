@@ -312,6 +312,57 @@ router.post('/:id/firmar', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * POST /api/contracts/:id/resolver
+ * Resuelve el contrato (Mutuo Acuerdo o Litigio)
+ */
+router.post('/:id/resolver', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { tipo, condiciones } = req.body;
+
+        if (!['MUTUO_ACUERDO', 'LITIGIO'].includes(tipo)) {
+            return res.status(400).json({ success: false, error: 'Tipo de resolución no válido' });
+        }
+
+        const { supabase } = await import('../config/supabase.js');
+        const { registerEvent } = await import('../services/eventService.js');
+
+        const nuevoEstado = tipo === 'LITIGIO' ? 'LITIGIO' : 'TERMINADO';
+
+        // Actualizar contrato
+        // Nota: Guardamos condiciones en observaciones por falta de columna específica en esta versión
+        const updateData: any = {
+            estado: nuevoEstado,
+            motivo_cierre: tipo
+        };
+
+        if (condiciones) {
+            updateData.observaciones = `[RESOLUCIÓN ${tipo}] ${condiciones}`;
+        }
+
+        const { error } = await supabase
+            .from('contratos_arras')
+            .update(updateData)
+            .eq('id', id);
+
+        if (error) throw error;
+
+        // Registrar evento
+        await registerEvent({
+            contratoId: id,
+            tipo: tipo === 'LITIGIO' ? 'ARBITRAJE_SOLICITADO' : 'CONTRATO_RESUELTO',
+            payload: { tipo, condiciones },
+        });
+
+        res.json({ success: true, estado: nuevoEstado });
+
+    } catch (error: any) {
+        console.error('Error al resolver contrato:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 export default router;
 
 /**

@@ -12,6 +12,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../config/supabase.js';
 import type { TipoRolUsuario, TipoMandato, PermisosEfectivos, MiembroExpediente, MandatoExpediente } from '../types/models.js';
+import type { AuthenticatedRequest } from './authMiddleware.js';
 
 // ============================================
 // PERMISSION TYPES
@@ -19,8 +20,10 @@ import type { TipoRolUsuario, TipoMandato, PermisosEfectivos, MiembroExpediente,
 
 export type Permission = keyof PermisosEfectivos;
 
-// Admin emails for fallback
-const ADMIN_EMAILS = ['admin@chronoflare.com', 'moisesmenendez@example.com'];
+// Admin emails for fallback (also superusers)
+const ADMIN_EMAILS = (process.env.SUPERUSER_EMAILS || 'admin@chronoflare.com,moisesmenendez@garrigues.com')
+    .split(',')
+    .map(e => e.trim().toLowerCase());
 
 // ============================================
 // BASE PERMISSIONS BY ROLE
@@ -312,10 +315,50 @@ export async function resolveAuthContext(
  */
 export function requirePermission(permission: Permission) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-        const userId = req.headers['x-user-id'] as string | undefined;
-        const userEmail = req.headers['x-user-email'] as string | undefined;
+        const authReq = req as AuthenticatedRequest;
+        const userId = authReq.userId || req.headers['x-user-id'] as string | undefined;
+        const userEmail = authReq.userEmail || req.headers['x-user-email'] as string | undefined;
         const mandatoActivoId = req.headers['x-mandato-id'] as string | undefined;
         const contratoId = req.params.contratoId || req.params.id;
+
+        // Superuser bypass - acceso total
+        if (authReq.isSuperuser) {
+            console.log(`[auth] Superuser ${userEmail} granted ${permission} for ${contratoId}`);
+            (req as any).authContext = {
+                userId,
+                userEmail,
+                contratoId,
+                tipoRol: 'ADMIN' as TipoRolUsuario,
+                permisos: BASE_PERMISSIONS.ADMIN,
+                source: 'superuser'
+            };
+            (req as any).userRole = 'ADMIN';
+            (req as any).userPermissions = BASE_PERMISSIONS.ADMIN;
+            (req as any).userId = userId;
+            return next();
+        }
+
+        // DEV_MODE role override
+        if (authReq.devModeRole) {
+            const devRole = authReq.devModeRole as TipoRolUsuario;
+            const devPerms = BASE_PERMISSIONS[devRole] || BASE_PERMISSIONS.OBSERVADOR;
+
+            if (devPerms[permission]) {
+                console.log(`[auth] DEV MODE: ${devRole} granted ${permission}`);
+                (req as any).authContext = {
+                    userId,
+                    userEmail,
+                    contratoId,
+                    tipoRol: devRole,
+                    permisos: devPerms,
+                    source: 'dev_mode'
+                };
+                (req as any).userRole = devRole;
+                (req as any).userPermissions = devPerms;
+                (req as any).userId = userId;
+                return next();
+            }
+        }
 
         if (!contratoId) {
             res.status(400).json({

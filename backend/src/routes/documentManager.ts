@@ -61,6 +61,74 @@ const upload = multer({
 });
 
 // ============================================
+// DIAGNOSTIC - Storage Debug Endpoint
+// ============================================
+
+/**
+ * GET /api/storage/debug
+ * Diagnose storage access issues - checks bucket visibility and file access
+ */
+router.get('/storage/debug', async (req: Request, res: Response) => {
+    try {
+        const prefix = req.query.prefix as string || '';
+        const testPath = req.query.path as string || '';
+
+        // 1. Verify bucket visibility (requires SERVICE_KEY)
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+
+        // 2. List files in the bucket (with optional prefix)
+        const { data: files, error: filesError } = await supabase.storage
+            .from('documentos')
+            .list(prefix, { limit: 50 });
+
+        // 3. Test signed URL generation if a path is provided
+        let signedUrlResult = null;
+        if (testPath) {
+            const { data: signedData, error: signError } = await supabase.storage
+                .from('documentos')
+                .createSignedUrl(testPath, 3600);
+            signedUrlResult = {
+                success: !signError && !!signedData?.signedUrl,
+                error: signError?.message || null,
+                hasSignedUrl: !!signedData?.signedUrl
+            };
+        }
+
+        // Log the first 10 chars of the service key (to verify correct key is used)
+        const serviceKeyPrefix = (process.env.SUPABASE_SERVICE_KEY || 'NOT_SET').substring(0, 10);
+
+        res.json({
+            success: true,
+            environment: {
+                SUPABASE_URL: process.env.SUPABASE_URL || 'NOT_SET',
+                SERVICE_KEY_PREFIX: serviceKeyPrefix + '...'
+            },
+            buckets: {
+                list: buckets?.map(b => b.name) || [],
+                error: bucketsError?.message || null,
+                isEmpty: buckets?.length === 0
+            },
+            files: {
+                prefix,
+                list: files?.map(f => ({ name: f.name, id: f.id, isFolder: f.id === null })) || [],
+                error: filesError?.message || null,
+                count: files?.length || 0
+            },
+            signedUrlTest: signedUrlResult,
+            diagnostic: {
+                message: buckets?.length === 0
+                    ? '⚠️ Empty buckets list - likely using ANON_KEY instead of SERVICE_KEY'
+                    : files?.length === 0 && !prefix
+                        ? '⚠️ Empty file list at root - files may not have been uploaded'
+                        : '✓ Storage access appears functional'
+            }
+        });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============================================
 // LISTADO Y FILTRADO
 // ============================================
 
@@ -378,20 +446,23 @@ router.get('/archivos/:id/descargar', async (req: Request, res: Response) => {
 router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        console.log(`[preview] Request for archivo id=${id}`);
 
         const { data: archivo, error } = await supabase
             .from('archivos')
-            .select('ruta, nombre_almacenado, nombre_original, tipo_mime')
+            .select('ruta, nombre_almacenado, nombre_original, tipo_mime, contrato_id')
             .eq('id', id)
             .single();
 
         if (error || !archivo) {
+            console.log(`[preview] DB query failed: error=${error?.message}, archivo=${JSON.stringify(archivo)}`);
             return res.status(404).json({ success: false, error: 'Archivo no encontrado' });
         }
 
         // Solo permitir preview de PDFs e imágenes
         const previewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
         if (!previewableTypes.includes(archivo.tipo_mime)) {
+            console.log(`[preview] Type not previewable: ${archivo.tipo_mime}`);
             return res.status(400).json({
                 success: false,
                 error: 'Este tipo de archivo no permite preview',
@@ -401,8 +472,10 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
 
         // Usar Supabase Storage para obtener URL firmada
         let storagePath = archivo.nombre_almacenado || archivo.ruta;
+        console.log(`[preview] Original storagePath=${storagePath}, nombre_almacenado=${archivo.nombre_almacenado}, ruta=${archivo.ruta}`);
 
         if (!storagePath) {
+            console.log(`[preview] No storage path found`);
             return res.status(404).json({ success: false, error: 'Ruta de archivo no encontrada' });
         }
 
@@ -420,6 +493,7 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
         };
 
         // Try original path first
+        console.log(`[preview] Trying original storagePath=${storagePath}`);
         let { data: signedData, error: signError } = await supabase.storage
             .from('documentos')
             .createSignedUrl(storagePath, 3600);
@@ -427,22 +501,32 @@ router.get('/archivos/:id/preview', async (req: Request, res: Response) => {
         // If failed and path has prefix, try stripped version as fallback
         if ((signError || !signedData?.signedUrl) && bucketPrefixes.some(p => storagePath.startsWith(p))) {
             const strippedPath = stripPrefix(storagePath);
+            console.log(`[preview] Original failed (${signError?.message}), trying stripped storagePath=${strippedPath}`);
             const fallback = await supabase.storage
                 .from('documentos')
                 .createSignedUrl(strippedPath, 3600);
             signedData = fallback.data;
             signError = fallback.error;
+            if (!signError && signedData?.signedUrl) {
+                storagePath = strippedPath;
+            }
         }
 
         if (signError || !signedData?.signedUrl) {
-            console.error('Error generando URL firmada:', signError);
-            return res.status(500).json({ success: false, error: 'Error al generar URL de preview' });
+            console.error(`[preview] Error generando URL firmada: ${signError?.message || 'No signedUrl returned'}`, { storagePath, archivo });
+            return res.status(500).json({
+                success: false,
+                error: 'Error al generar URL de preview',
+                details: signError?.message || 'No signedUrl returned',
+                path: storagePath
+            });
         }
 
+        console.log(`[preview] Success! Redirecting to signed URL`);
         // Redirigir a la URL firmada para preview
         res.redirect(signedData.signedUrl);
     } catch (error: any) {
-        console.error('Error en preview:', error);
+        console.error('[preview] Error en preview:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

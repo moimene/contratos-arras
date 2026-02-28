@@ -3,6 +3,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { errorHandler } from './middleware/errorHandler.js';
+import { globalAuth } from './middleware/authMiddleware.js';
 import contratosRoutes from './routes/contratos.js';
 import partesRoutes from './routes/partes.js';
 import aceptacionesRoutes from './routes/aceptaciones.js';
@@ -42,7 +43,7 @@ const corsOptions = {
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-user-id', 'x-user-email']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-user-id', 'x-user-email', 'x-mandato-id']
 };
 app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -53,6 +54,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
     next();
 });
+
+// Global authentication middleware for /api routes
+app.use('/api', globalAuth);
 
 // Welcome page
 app.get('/', (_req: Request, res: Response) => {
