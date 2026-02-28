@@ -223,6 +223,7 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
                     <div className="firma-parte-actions">
                         <label className="firma-checkbox-label">
                             <input
+                                data-testid={`aceptar-terminos-${parteId}`}
                                 type="checkbox"
                                 className="firma-checkbox"
                                 checked={aceptoTerminos[parteId] || false}
@@ -237,6 +238,7 @@ export const FirmaElectronica: React.FC<FirmaElectronicaProps> = ({
                         </label>
 
                         <button
+                            data-testid={`firmar-${parteId}`}
                             onClick={() => handleFirmar(parteId)}
                             disabled={!aceptoTerminos[parteId] || estaFirmandoEsta}
                             className={`btn-firma ${aceptoTerminos[parteId] ? 'enabled' : 'disabled'}`}
