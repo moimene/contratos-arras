@@ -122,6 +122,7 @@ export default function LoginPage() {
                         </label>
                         <input
                             id="email"
+                            data-testid="email-input"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -131,6 +132,7 @@ export default function LoginPage() {
                         />
                         <button
                             type="submit"
+                            data-testid="magic-link-submit"
                             className="auth-submit-button"
                             disabled={isLoading}
                         >
@@ -140,7 +142,7 @@ export default function LoginPage() {
 
                     {/* Message Display */}
                     {message && (
-                        <div className={`auth-message ${message.type}`}>
+                        <div className={`auth-message ${message.type}`} data-testid={message.type === 'success' ? 'magic-link-success' : 'magic-link-error'}>
                             {message.text}
                         </div>
                     )}

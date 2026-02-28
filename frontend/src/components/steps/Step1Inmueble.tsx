@@ -108,16 +108,16 @@ export const Step1Inmueble: React.FC = () => {
     };
 
     return (
-        <div className="step-1-container">
+        <div className="step-1-container" data-testid="step1">
             <div className="step-1-main">
-                <h2 className="step-title">🏠 Paso 1: Datos del Inmueble</h2>
+                <h2 className="step-title" data-testid="step1-title">🏠 Paso 1: Datos del Inmueble</h2>
                 <p className="step-description">
                     Introduce los datos de la vivienda objeto del contrato de arras.
                 </p>
 
                 <form onSubmit={handleSubmit} className="step-form">
                     {/* 1. UBICACIÓN */}
-                    <div className="form-section">
+                    <div className="form-section" data-testid="step1-ubicacion">
                         <h3>📍 Ubicación e Identificación Básica</h3>
 
                         <div className="form-group">
@@ -125,6 +125,7 @@ export const Step1Inmueble: React.FC = () => {
                                 Dirección completa <span className="required">*</span>
                             </label>
                             <input
+                                data-testid="inmueble-direccion"
                                 type="text"
                                 id="direccion_completa"
                                 name="direccion_completa"
@@ -142,6 +143,7 @@ export const Step1Inmueble: React.FC = () => {
                             <div className="form-group">
                                 <label htmlFor="codigo_postal">Código Postal</label>
                                 <input
+                                    data-testid="inmueble-cp"
                                     type="text"
                                     id="codigo_postal"
                                     name="codigo_postal"
@@ -158,6 +160,7 @@ export const Step1Inmueble: React.FC = () => {
                                     Ciudad <span className="required">*</span>
                                 </label>
                                 <input
+                                    data-testid="inmueble-ciudad"
                                     type="text"
                                     id="ciudad"
                                     name="ciudad"
@@ -173,6 +176,7 @@ export const Step1Inmueble: React.FC = () => {
                                     Provincia <span className="required">*</span>
                                 </label>
                                 <input
+                                    data-testid="inmueble-provincia"
                                     type="text"
                                     id="provincia"
                                     name="provincia"
@@ -483,7 +487,7 @@ export const Step1Inmueble: React.FC = () => {
                     </div>
 
                     <div className="form-actions">
-                        <button type="submit" className="btn btn-primary">
+                        <button type="submit" className="btn btn-primary" data-testid="step1-submit">
                             Continuar →
                         </button>
                     </div>

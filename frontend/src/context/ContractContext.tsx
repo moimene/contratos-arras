@@ -144,6 +144,12 @@ interface Contrato {
 
     // Subrogación en arrendamiento (si sinArrendatarios = false)
     subrogacionArrendamiento?: boolean;
+
+    // Pactos adicionales (campos variables)
+    pactosAdicionales?: Array<{
+        titulo: string;
+        contenido: string;
+    }>;
 }
 
 interface Parte {
@@ -387,6 +393,7 @@ export const ContractProvider: React.FC<ContractProviderProps> = ({ children }) 
                 notario_designado_direccion: data.notario_designado_direccion,
                 iban_vendedor: data.iban_vendedor,
                 banco_vendedor: data.banco_vendedor,
+                pactosAdicionales: data.pactosAdicionales || [],
                 ...(data.datos_wizard || {})
             });
 
@@ -539,7 +546,8 @@ export const DEFAULT_CONFIG_ESTANDAR: ConfiguracionEstandar = {
         'gastos_quien',
         'via_resolucion',
         'firma_preferida',
-        'otrosCambiosTerminos'
+        'otrosCambiosTerminos',
+        'pactosAdicionales'
     ]
 };
 
