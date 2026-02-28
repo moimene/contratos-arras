@@ -10,7 +10,7 @@ import { useContrato } from '../../hooks/useContrato';
 import { useTipoRolUsuario, ROL_LABELS, ROL_ICONS } from '../../hooks/useTipoRolUsuario';
 import { useContratoDashboardVM } from './hooks/useContratoDashboardVM';
 import { useContratoQuery } from '../../hooks/queries/useContratoQuery';
-import { isPostFirma } from '../../domain/contrato';
+import { isPostFirma, isTerminal } from '../../domain/contrato';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MandatoProvider } from '../../contexts/MandatoContext';
 import MandatoSelector from '../../components/MandatoSelector';
@@ -32,6 +32,7 @@ const ChecklistNotaria = lazy(() => import('../../components/notaria/ChecklistNo
 const FirmaElectronica = lazy(() =>
     import('../../components/firma/FirmaElectronica').then(m => ({ default: m.FirmaElectronica }))
 );
+const PanelResolucion = lazy(() => import('./components/PanelResolucion'));
 
 // Fallback de carga para secciones
 function SectionLoader() {
@@ -289,6 +290,24 @@ export default function ContratoDashboard({
                         >
                             <Suspense fallback={<SectionLoader />}>
                                 <ChatPanel contratoId={contrato.id} />
+                            </Suspense>
+                        </DashboardSection>
+
+
+
+                        {/* Sección Resolución y Cierre */}
+                        <DashboardSection
+                            id="resolucion"
+                            title={isTerminal(contrato.estado) ? 'Cierre del Expediente' : 'Resolución y Cierre'}
+                            icon={isTerminal(contrato.estado) ? '🔒' : '🚪'}
+                            defaultOpen={isTerminal(contrato.estado)}
+                        >
+                            <Suspense fallback={<SectionLoader />}>
+                                <PanelResolucion
+                                    contratoId={contrato.id}
+                                    estado={contrato.estado}
+                                    onStatusChange={refetch}
+                                />
                             </Suspense>
                         </DashboardSection>
 
